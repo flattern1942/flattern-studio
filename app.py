@@ -1,14 +1,18 @@
+
 import streamlit as st
 import os
 
+# --- 1. PAGE CONFIG ---
 st.set_page_config(page_title="Flattern Studio | Industrial CAD", layout="wide")
 
-# --- 1. LOGOS ---
+# --- 2. LOGO RESTORATION (TOP) ---
+# Looking for your exact file name: logo.png.png
 if os.path.exists("logo.png.png"):
     st.image("logo.png.png", width=200)
 
-# --- 2. SIDEBAR (ADMIN, SEAM ALLOWANCE, FABRIC) ---
+# --- 3. SIDEBAR (ADMIN, SA, LOGO) ---
 with st.sidebar:
+    # Looking for your exact file name: sidebar_logo.png.png
     if os.path.exists("sidebar_logo.png.png"):
         st.image("sidebar_logo.png.png", use_container_width=True)
     
@@ -28,7 +32,7 @@ with st.sidebar:
     fab = st.text_input("Fabric Type", "Denim")
     ply = st.number_input("Fabric Ply Count", min_value=1, value=1)
 
-# --- 3. MAIN INTERFACE & PRICING ---
+# --- 4. MAIN INTERFACE & PRICING ---
 st.title("Flattern Studio | Industrial CAD Suite")
 
 plan = st.radio("Select Professional Plan", 
@@ -41,7 +45,7 @@ limit = "30" if "Manufacturer" in plan else "20"
 # UPLOAD TECHNICAL FLAT
 up = st.file_uploader("Upload Technical Flat", type=['jpg', 'png', 'jpeg'])
 
-# --- 4. SIZING SYSTEMS (US, UK, EU) ---
+# SIZING SYSTEMS (US, UK, EU)
 st.subheader("Grading & Size Range")
 c1, c2, c3 = st.columns(3)
 with c1:
@@ -56,14 +60,14 @@ if up:
     st.markdown("---")
     st.subheader("Industrial Pattern Analysis")
     
-    # VISUAL 1 & 2: EXTERNAL & INTERNAL
     col_a, col_b = st.columns(2)
     with col_a:
-        st.image(up, caption=f"1. External Highlights: Perimeter & {sa} {unit} SA", use_container_width=True)
+        st.subheader("External Highlights")
+        st.image(up, caption=f"1. Perimeter Detection & {sa} {unit} SA", use_container_width=True)
     with col_b:
-        st.image(up, caption="2. Internal Lines: Darts, Notches & Technical Markings", use_container_width=True)
+        st.subheader("Internal Lines")
+        st.image(up, caption="2. Darts, Notches & Technical Markings", use_container_width=True)
     
-    # VISUAL 3: THE COMPONENT BREAKDOWN
     st.markdown("---")
     st.subheader("3. Component Breakdown")
     st.image(up, caption=f"Exploded View: {limit} Separate Pieces Identified for Industrial DXF", use_container_width=True)
@@ -72,11 +76,11 @@ if up:
     st.markdown("---")
     if is_admin:
         st.success("Admin Access Active: Downloads Unlocked")
-        st.button("Download Industrial DXF (All Pieces)")
+        st.button("Download Industrial DXF")
         st.button("Download Tech Pack PDF")
     else:
         st.write(f"Total: ${price} for {limit} Designs")
-        # PAYSTACK GATEWAY
+        # PAYSTACK BUTTON
         pay_url = "https://paystack.com/pay/flattern-studio"
         st.markdown(f'''
             <a href="{pay_url}" target="_blank">
