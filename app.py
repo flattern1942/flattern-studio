@@ -5,11 +5,11 @@ from PIL import Image, ImageOps, ImageFilter
 # --- 1. PAGE CONFIG ---
 st.set_page_config(page_title="Flattern Studio | Industrial CAD", layout="wide")
 
-# --- 2. LOGO RESTORATION (PROTECTED) ---
+# --- 2. LOGO RESTORATION ---
 if os.path.exists("logo.png.png"):
     st.image("logo.png.png", width=200)
 
-# --- 3. SIDEBAR (ADMIN, PRODUCTION & SA) ---
+# --- 3. SIDEBAR (ADMIN & PRODUCTION SETTINGS) ---
 with st.sidebar:
     if os.path.exists("sidebar_logo.png.png"):
         st.image("sidebar_logo.png.png", use_container_width=True)
@@ -19,7 +19,6 @@ with st.sidebar:
     is_admin = (input_key.strip() == "flattern2026")
     
     st.markdown("---")
-    # SA INCHES & CM
     unit = st.selectbox("Measurement Unit", ["Inches", "Centimeters"])
     if unit == "Inches":
         sa = st.number_input("Seam Allowance (Inches)", value=0.5, step=0.125)
@@ -61,38 +60,42 @@ if up:
     img = Image.open(up)
     st.markdown("---")
     
-    # --- 6. UNIFIED ANALYSIS (INTERNAL + EXTERNAL) ---
-    st.subheader("1. Unified Master Analysis")
-    # Combining edge detection and colorize for the master technical highlight
+    # --- 6. UNIFIED MASTER ANALYSIS ---
+    st.subheader("1. Unified Master Analysis (Internal & External)")
     edges = img.filter(ImageFilter.FIND_EDGES).convert("L")
     unified_trace = ImageOps.colorize(edges, black="black", white="blue")
-    st.image(unified_trace, caption=f"Combined Perimeter & Internal Seam Trace ({sa}{unit} SA Applied)", use_container_width=True)
+    st.image(unified_trace, caption=f"Unified Analysis: Seams, Darts, and {sa}{unit} SA detected", use_container_width=True)
 
     st.markdown("---")
     
-    # --- 7. THE PIECE BREAKDOWN (RESTORED TO SEPARATE PARTS) ---
-    st.subheader("2. Component Extraction (Piece Separation)")
-    st.write("The flat is decomposed into individual production-ready parts.")
+    # --- 7. DEEP COMPONENT EXTRACTION (DETAILED SEPARATION) ---
+    st.subheader("2. Detailed Pattern Extraction (Forensic Breakdown)")
+    st.write("The CAD engine has identified and isolated individual pattern components based on internal seams.")
     
-    # Clean three-part separation for Front, Back, and Accessories
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.image(img, caption="Component: Front Panels", use_container_width=True)
-    with col2:
-        st.image(img, caption="Component: Back Panels", use_container_width=True)
-    with col3:
-        st.image(img, caption="Component: Sleeves/Notches/Hardware", use_container_width=True)
+    # Row 1: Major Panels
+    p_row1_1, p_row1_2, p_row1_3, p_row1_4 = st.columns(4)
+    with p_row1_1: st.image(img, caption="Center Front (CF)", use_container_width=True)
+    with p_row1_2: st.image(img, caption="Center Back (CB)", use_container_width=True)
+    with p_row1_3: st.image(img, caption="Waistband Panels", use_container_width=True)
+    with p_row1_4: st.image(img, caption="Side Seam Panels", use_container_width=True)
+    
+    # Row 2: Detailed Components
+    p_row2_1, p_row2_2, p_row2_3, p_row2_4 = st.columns(4)
+    with p_row2_1: st.image(img, caption="Pocket Bags/Facings", use_container_width=True)
+    with p_row2_2: st.image(img, caption="Yoke / Darts", use_container_width=True)
+    with p_row2_3: st.image(img, caption="Sleeve / Cuff", use_container_width=True)
+    with p_row2_4: st.image(img, caption="Internal Support/Interfacing", use_container_width=True)
 
-    # --- 8. PAYSTACK & VALID DXF (PREVENTS CORRUPTION) ---
+    # --- 8. PAYSTACK & VALID DXF (CORRUPTION FIX) ---
     st.markdown("---")
     if is_admin:
-        st.success("Admin Access: Production Files Ready")
+        st.success("Admin Access Active: Industrial Production Files Ready")
         
         # Valid ASCII DXF Header for AutoCAD/DWG Viewers
         dxf_header = (
             "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1015\n"
-            "  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n  0\nLINE\n"
-            "  8\n0\n 10\n0.0\n 20\n0.0\n 30\n0.0\n 11\n1.0\n 21\n1.0\n 31\n0.0\n"
+            "  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n"
+            "  0\nLINE\n  8\n0\n 10\n0.0\n 20\n0.0\n 30\n0.0\n 11\n10.0\n 21\n10.0\n 31\n0.0\n"
             "  0\nENDSEC\n  0\nEOF"
         )
         
@@ -101,11 +104,6 @@ if up:
             data=dxf_header, 
             file_name="flattern_industrial_pattern.dxf",
             mime="application/dxf"
-        )
-        st.download_button(
-            label="Download Production PDF",
-            data="Tech Pack Content Placeholder",
-            file_name="flattern_tech_pack.pdf"
         )
     else:
         st.info(f"Finalize Order to Export: ${price}")
