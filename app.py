@@ -3,19 +3,23 @@ import pandas as pd
 import os
 from PIL import Image, ImageOps, ImageFilter
 
-# --- 1. SETTINGS & LOGO RESTORATION ---
+# --- 1. SETTINGS & BRANDING ---
 st.set_page_config(layout="wide", page_title="Flattern Studio | Industrial CAD")
 
-# Safety Check for Logo
+# Main Header Logo
 if os.path.exists("logo.png.png"):
     st.image("logo.png.png", width=200)
-else:
-    st.warning("Logo file 'logo.png.png' not found in folder. App running in 'Clean Mode'.")
 
 st.title("Flattern Studio | Forensic Pattern Extraction")
 
-# --- 2. THE PRODUCTION SIDEBAR ---
+# --- 2. THE PRODUCTION SIDEBAR (SIDEBAR LOGO RESTORED) ---
 with st.sidebar:
+    # SIDEBAR LOGO
+    if os.path.exists("logo.png.png"):
+        st.image("logo.png.png", use_container_width=True)
+    else:
+        st.info("Branding Mode: Sidebar Logo Placeholder")
+        
     st.header("Security & Grading")
     admin_key = st.text_input("Admin Access Key", type="password")
     
@@ -27,6 +31,7 @@ with st.sidebar:
     st.markdown("---")
     st.subheader("Freestyle Seam Allowance")
     unit = st.selectbox("Unit System", ["Inches", "Centimeters"])
+    # Freestyle SA input
     user_sa = st.number_input(f"Seam Allowance ({unit})", value=0.5, step=0.125)
 
 # --- 3. THE MASTER SPECIFICATION TABLE ---
