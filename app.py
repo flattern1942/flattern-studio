@@ -1,102 +1,90 @@
 import streamlit as st
-import pandas as pd
 import os
 
-# --- 1. PAGE SETUP ---
 st.set_page_config(page_title="Flattern Studio | Industrial CAD", layout="wide")
 
-# --- 2. LOGOS ---
+# --- 1. LOGOS ---
 if os.path.exists("logo.png.png"):
-    st.image("logo.png.png", width=150)
+    st.image("logo.png.png", width=200)
 
-# --- 3. SIDEBAR (ADMIN, SEAM ALLOWANCE, FABRIC) ---
+# --- 2. SIDEBAR (ADMIN, SEAM ALLOWANCE, FABRIC) ---
 with st.sidebar:
     if os.path.exists("sidebar_logo.png.png"):
         st.image("sidebar_logo.png.png", use_container_width=True)
     
-    st.header("Control Panel")
-    
-    # ADMIN BYPASS
-    admin_password = st.text_input("System Admin Key", type="password")
-    is_admin = (admin_password == "flattern2026")
+    st.header("Admin Control")
+    admin_key = st.text_input("Admin Key", type="password")
+    is_admin = (admin_key == "flattern2026")
     
     st.markdown("---")
-    
-    # SEAM ALLOWANCE (INCHES & CM)
+    # SEAM ALLOWANCE - INCHES & CM
     unit = st.selectbox("Measurement Unit", ["Inches", "Centimeters"])
     if unit == "Inches":
-        sa_amt = st.number_input("Seam Allowance (Inches)", value=0.5, step=0.125)
+        sa = st.number_input("Seam Allowance (Inches)", value=0.5, step=0.125)
     else:
-        sa_amt = st.number_input("Seam Allowance (Centimeters)", value=1.2, step=0.1)
+        sa = st.number_input("Seam Allowance (Centimeters)", value=1.2, step=0.1)
 
-    # FABRIC COUNTER
     st.subheader("Fabric Counter")
-    fab_type = st.text_input("Fabric Type", "Denim")
-    ply = st.number_input("Ply Count", min_value=1, value=1)
+    fab = st.text_input("Fabric Type", "Denim")
+    ply = st.number_input("Fabric Ply Count", min_value=1, value=1)
 
-# --- 4. MAIN INTERFACE & TIERED PRICING ---
-st.title("Industrial Tech Pack & CAD Suite")
+# --- 3. MAIN INTERFACE & PRICING ---
+st.title("Flattern Studio | Industrial CAD Suite")
 
-# Price Tier Selection
-user_role = st.radio("Select Professional Plan", 
-                     ["Fashion Designer ($1,500 for 20 Designs)", 
-                      "Garment Manufacturer ($2,500 for 30 Designs)"])
+plan = st.radio("Select Professional Plan", 
+                ["Fashion Designer ($1500 for 20 Designs)", 
+                 "Garment Manufacturer ($2500 for 30 Designs)"])
 
-if "Manufacturer" in user_role:
-    price_val = "2500"
-    design_limit = "30"
-else:
-    price_val = "1500"
-    design_limit = "20"
+price = "2500" if "Manufacturer" in plan else "1500"
+limit = "30" if "Manufacturer" in plan else "20"
 
-col1, col2 = st.columns(2)
-with col1:
-    uploaded_file = st.file_uploader("Upload Pattern Photo", type=['jpg', 'png', 'jpeg'])
-    client = st.text_input("Client Name")
-with col2:
-    st.subheader("Digitalization Specs")
-    internal_lines = st.checkbox("Extract Internal Lines (Darts/Notches)", value=True)
-    size_range = st.multiselect("Sizes", ["XS", "S", "M", "L", "XL"], default=["M"])
+# UPLOAD TECHNICAL FLAT
+up = st.file_uploader("Upload Technical Flat", type=['jpg', 'png', 'jpeg'])
 
-# --- 5. COMPONENT BREAKDOWN VISUALS ---
-if uploaded_file:
+# --- 4. SIZING SYSTEMS (US, UK, EU) ---
+st.subheader("Grading & Size Range")
+c1, c2, c3 = st.columns(3)
+with c1:
+    st.multiselect("US Sizes", ["2", "4", "6", "8", "10", "12", "14"], default=["6"])
+with c2:
+    st.multiselect("UK Sizes", ["6", "8", "10", "12", "14", "16", "18"], default=["10"])
+with c3:
+    st.multiselect("EU Sizes", ["34", "36", "38", "40", "42", "44", "46"], default=["38"])
+
+# --- 5. THE THREE VISUALIZATIONS ---
+if up:
     st.markdown("---")
-    st.subheader("Industrial Analysis & Component Breakdown")
+    st.subheader("Industrial Pattern Analysis")
     
-    v_col1, v_col2 = st.columns(2)
+    # VISUAL 1 & 2: EXTERNAL & INTERNAL
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.image(up, caption=f"1. External Highlights: Perimeter & {sa} {unit} SA", use_container_width=True)
+    with col_b:
+        st.image(up, caption="2. Internal Lines: Darts, Notches & Technical Markings", use_container_width=True)
     
-    with v_col1:
-        st.image(uploaded_file, caption="1. Perimeter Detection & SA Applied", use_container_width=True)
-        st.info(f"Unit: {unit} | SA: {sa_amt}")
-        
-    with v_col2:
-        # THE BREAKDOWN FEATURE
-        st.image(uploaded_file, caption=f"2. COMPONENT BREAKDOWN: {design_limit} Flats Identified", use_container_width=True)
-        st.success("Internal lines and separate flats extracted for DXF.")
-
-    # --- 6. PAYSTACK GATEWAY & ADMIN DOWNLOAD ---
+    # VISUAL 3: THE COMPONENT BREAKDOWN
     st.markdown("---")
-    
+    st.subheader("3. Component Breakdown")
+    st.image(up, caption=f"Exploded View: {limit} Separate Pieces Identified for Industrial DXF", use_container_width=True)
+
+    # --- 6. PAYSTACK & ADMIN BYPASS ---
+    st.markdown("---")
     if is_admin:
-        st.subheader("Admin Download Console")
-        st.write("Bypass Active: Accessing all component flats for free.")
-        st.button("Download Industrial DXF (Full Breakdown)")
+        st.success("Admin Access Active: Downloads Unlocked")
+        st.button("Download Industrial DXF (All Pieces)")
         st.button("Download Tech Pack PDF")
     else:
-        st.subheader("Finalize & Export")
-        st.write(f"Package: {design_limit} Designs | Total Due: ${price_val}")
-        
-        # --- THE PAYSTACK BUTTON ---
-        paystack_link = "https://paystack.com/pay/flattern-studio"
-        st.markdown(f"""
-            <a href="{paystack_link}" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #000; color: white; padding: 20px; text-align: center; font-weight: bold; border-radius: 4px; font-size: 20px;">
-                    PAY ${price_val} VIA PAYSTACK
-                </div>
+        st.write(f"Total: ${price} for {limit} Designs")
+        # PAYSTACK GATEWAY
+        pay_url = "https://paystack.com/pay/flattern-studio"
+        st.markdown(f'''
+            <a href="{pay_url}" target="_blank">
+                <button style="width:100%; height:60px; background:black; color:white; font-weight:bold; border:none; border-radius:5px; cursor:pointer; font-size:18px;">
+                    PAY ${price} VIA PAYSTACK
+                </button>
             </a>
-            """, unsafe_allow_html=True)
-        st.caption("Secure payment via Paystack Gateway. Downloads unlock after verification.")
+            ''', unsafe_allow_html=True)
 
-# --- 7. FOOTER ---
 st.markdown("---")
-st.write("flattern.com | Industrial Grade CAD | Lagos, Nigeria")
+st.caption("flattern.com | Industrial Grade | Lagos, Nigeria")
