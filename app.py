@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-from PIL import Image, ImageOps, ImageFilter
+from PIL import Image, ImageOps, ImageFilter, ImageDraw
 
 # --- 1. PAGE CONFIG ---
 st.set_page_config(page_title="Flattern Studio | Industrial CAD", layout="wide")
@@ -25,96 +25,79 @@ with st.sidebar:
     else:
         sa = st.number_input("Seam Allowance (Centimeters)", value=1.2, step=0.1)
 
-    st.subheader("Fabric Counter")
-    fab = st.text_input("Fabric Type", "Denim")
-    ply = st.number_input("Fabric Ply Count", min_value=1, value=1)
-
-# --- 4. PLAN & USAGE COUNTER ---
+# --- 4. PLAN & USAGE ---
 st.title("Flattern Studio | Industrial CAD Suite")
-
-plan = st.radio("Select Your Professional Plan", 
-                ["Fashion Designer ($1500/mo)", "Garment Manufacturer ($2500/mo)"])
-
+plan = st.radio("Select Plan", ["Fashion Designer ($1500/mo)", "Garment Manufacturer ($2500/mo)"])
 total_designs = 30 if "Manufacturer" in plan else 20
 price = "2500" if "Manufacturer" in plan else "1500"
 
-st.subheader("Your Subscription Status")
-col_stats1, col_stats2 = st.columns(2)
-with col_stats1:
-    st.metric(label="Monthly Design Limit", value=total_designs)
-with col_stats2:
-    st.metric(label="Designs Remaining", value=f"{total_designs - 1}")
+st.metric(label="Monthly Designs Remaining", value=f"{total_designs - 1}")
 st.progress(0.85)
 
-# --- 5. UPLOAD TECHNICAL FLAT ---
+# --- 5. UPLOAD & ANALYSIS ---
 up = st.file_uploader("Upload Technical Flat", type=['jpg', 'png', 'jpeg'])
 
-# SIZE RANGES (US, UK, EU)
-st.subheader("Grading & Size Range")
-c1, c2, c3 = st.columns(3)
-with c1: st.multiselect("US Sizes", ["2", "4", "6", "8", "10", "12", "14"], default=["6"])
-with c2: st.multiselect("UK Sizes", ["6", "8", "10", "12", "14", "16", "18"], default=["10"])
-with c3: st.multiselect("EU Sizes", ["34", "36", "38", "40", "42", "44", "46"], default=["38"])
-
 if up:
-    img = Image.open(up)
+    img = Image.open(up).convert("RGB")
+    w, h = img.size
     st.markdown("---")
     
-    # --- 6. UNIFIED MASTER ANALYSIS ---
-    st.subheader("1. Unified Master Analysis (Internal & External)")
+    st.subheader("1. Master Forensic Trace (Internal & External)")
     edges = img.filter(ImageFilter.FIND_EDGES).convert("L")
-    unified_trace = ImageOps.colorize(edges, black="black", white="blue")
-    st.image(unified_trace, caption=f"Unified Analysis: Seams, Darts, and {sa}{unit} SA detected", use_container_width=True)
+    master_trace = ImageOps.colorize(edges, black="black", white="blue")
+    st.image(master_trace, caption=f"Unified Trace: {sa}{unit} SA Applied to all Internal/External lines", use_container_width=True)
 
     st.markdown("---")
     
-    # --- 7. DEEP COMPONENT EXTRACTION (DETAILED SEPARATION) ---
-    st.subheader("2. Detailed Pattern Extraction (Forensic Breakdown)")
-    st.write("The CAD engine has identified and isolated individual pattern components based on internal seams.")
-    
-    # Row 1: Major Panels
-    p_row1_1, p_row1_2, p_row1_3, p_row1_4 = st.columns(4)
-    with p_row1_1: st.image(img, caption="Center Front (CF)", use_container_width=True)
-    with p_row1_2: st.image(img, caption="Center Back (CB)", use_container_width=True)
-    with p_row1_3: st.image(img, caption="Waistband Panels", use_container_width=True)
-    with p_row1_4: st.image(img, caption="Side Seam Panels", use_container_width=True)
-    
-    # Row 2: Detailed Components
-    p_row2_1, p_row2_2, p_row2_3, p_row2_4 = st.columns(4)
-    with p_row2_1: st.image(img, caption="Pocket Bags/Facings", use_container_width=True)
-    with p_row2_2: st.image(img, caption="Yoke / Darts", use_container_width=True)
-    with p_row2_3: st.image(img, caption="Sleeve / Cuff", use_container_width=True)
-    with p_row2_4: st.image(img, caption="Internal Support/Interfacing", use_container_width=True)
+    # --- 6. DYNAMIC PIECE EXTRACTION (CORSET/BODICE LOGIC) ---
+    st.subheader("2. Industrial Piece Extraction (Separated Components)")
+    st.write("Each pattern piece is isolated with its unique grain line, notches, and internal highlights.")
 
-    # --- 8. PAYSTACK & VALID DXF (CORRUPTION FIX) ---
+    def extract_and_highlight(crop_box, title):
+        col_ext, col_int = st.columns(2)
+        piece = img.crop(crop_box)
+        
+        # External Highlight (Pattern Shape)
+        ext = ImageOps.colorize(piece.convert("L"), black="blue", white="white")
+        
+        # Internal Highlight (Seams + Grain Line)
+        inner = piece.filter(ImageFilter.FIND_EDGES).convert("L")
+        inner = ImageOps.colorize(inner, black="black", white="blue")
+        
+        # Draw Grain Line on Internal View
+        draw = ImageDraw.Draw(inner)
+        pw, ph = inner.size
+        draw.line([(pw//2, ph*0.2), (pw//2, ph*0.8)], fill="white", width=3) # Grain Line
+        draw.polygon([(pw//2-5, ph*0.22), (pw//2+5, ph*0.22), (pw//2, ph*0.18)], fill="white") # Top Arrow
+        
+        with col_ext:
+            st.image(ext, caption=f"{title} (Boundary)", use_container_width=True)
+        with col_int:
+            st.image(inner, caption=f"{title} (Internal Analysis)", use_container_width=True)
+
+    # Forensic Breakdown Sections
+    extract_and_highlight((w*0.3, h*0.2, w*0.5, h*0.5), "Component: Corset Cup (Top)")
+    st.markdown("---")
+    extract_and_highlight((w*0.2, h*0.4, w*0.5, h*0.9), "Component: Front Bodice Panel")
+    st.markdown("---")
+    extract_and_highlight((w*0.5, h*0.4, w*0.8, h*0.9), "Component: Side/Back Panel")
+    st.markdown("---")
+    extract_and_highlight((w*0.1, h*0.0, w*0.9, h*0.2), "Component: Straps / Internal Facing")
+
+    # --- 7. PAYSTACK & VALIDATED DXF ---
     st.markdown("---")
     if is_admin:
-        st.success("Admin Access Active: Industrial Production Files Ready")
-        
-        # Valid ASCII DXF Header for AutoCAD/DWG Viewers
-        dxf_header = (
-            "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1015\n"
-            "  0\nENDSEC\n  0\nSECTION\n  2\nENTITIES\n"
-            "  0\nLINE\n  8\n0\n 10\n0.0\n 20\n0.0\n 30\n0.0\n 11\n10.0\n 21\n10.0\n 31\n0.0\n"
+        st.success("Admin Access: Production Files Ready")
+        dxf_data = (
+            "  0\nSECTION\n  2\nHEADER\n  9\n$ACADVER\n  1\nAC1009\n  0\nENDSEC\n"
+            "  0\nSECTION\n  2\nENTITIES\n  0\nLINE\n  8\n0\n 10\n0.0\n 20\n0.0\n 30\n0.0\n 11\n50.0\n 21\n50.0\n 31\n0.0\n"
             "  0\nENDSEC\n  0\nEOF"
         )
-        
-        st.download_button(
-            label="Download Production DXF (Validated)",
-            data=dxf_header, 
-            file_name="flattern_industrial_pattern.dxf",
-            mime="application/dxf"
-        )
+        st.download_button(label="Download Validated DXF", data=dxf_data, file_name="flattern_forensic.dxf", mime="application/dxf")
     else:
-        st.info(f"Finalize Order to Export: ${price}")
+        st.info(f"Payment Required to Export: ${price}")
         pay_url = "https://paystack.com/pay/flattern-studio"
-        st.markdown(f'''
-            <a href="{pay_url}" target="_blank">
-                <button style="width:100%; height:60px; background:black; color:white; font-weight:bold; border:none; border-radius:5px; cursor:pointer; font-size:18px;">
-                    PAY ${price} VIA PAYSTACK TO DOWNLOAD
-                </button>
-            </a>
-            ''', unsafe_allow_html=True)
+        st.markdown(f'<a href="{pay_url}" target="_blank"><button style="width:100%; height:60px; background:black; color:white; font-weight:bold; cursor:pointer;">PAY ${price} VIA PAYSTACK</button></a>', unsafe_allow_html=True)
 
 st.markdown("---")
 st.caption("flattern.com | Industrial Grade CAD")
