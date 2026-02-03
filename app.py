@@ -1,13 +1,20 @@
-
 import streamlit as st
 import pandas as pd
+import os
 from PIL import Image, ImageOps, ImageFilter
 
-# --- 1. SETTINGS & BRANDING ---
+# --- 1. SETTINGS & LOGO RESTORATION ---
 st.set_page_config(layout="wide", page_title="Flattern Studio | Industrial CAD")
+
+# Safety Check for Logo
+if os.path.exists("logo.png.png"):
+    st.image("logo.png.png", width=200)
+else:
+    st.warning("Logo file 'logo.png.png' not found in folder. App running in 'Clean Mode'.")
+
 st.title("Flattern Studio | Forensic Pattern Extraction")
 
-# --- 2. THE PRODUCTION SIDEBAR (EVERYTHING RESTORED) ---
+# --- 2. THE PRODUCTION SIDEBAR ---
 with st.sidebar:
     st.header("Security & Grading")
     admin_key = st.text_input("Admin Access Key", type="password")
@@ -20,7 +27,6 @@ with st.sidebar:
     st.markdown("---")
     st.subheader("Freestyle Seam Allowance")
     unit = st.selectbox("Unit System", ["Inches", "Centimeters"])
-    # This is the "Freestyle" box you requested
     user_sa = st.number_input(f"Seam Allowance ({unit})", value=0.5, step=0.125)
 
 # --- 3. THE MASTER SPECIFICATION TABLE ---
@@ -47,7 +53,6 @@ if up:
     st.markdown("---")
     st.subheader("Step-by-Step Pattern Extraction")
 
-    # The coordinates to isolate your pieces
     pieces = [
         {"name": "Center Front Panel", "box": (w*0.2, h*0.45, w*0.4, h*0.95), "id": "CF-01"},
         {"name": "Side Front Panel", "box": (w*0.4, h*0.45, w*0.65, h*0.9), "id": "SF-02"},
@@ -59,10 +64,7 @@ if up:
         st.write(f"### Piece {i+1}: {p['name']} ({p['id']})")
         col1, col2 = st.columns(2)
         
-        # Isolation
         raw_piece = img.crop(p['box'])
-        
-        # Forensic Conversion to Blue Vectors
         edges = raw_piece.filter(ImageFilter.FIND_EDGES).convert("L")
         trued_pattern = ImageOps.colorize(edges, black="black", white="blue")
         
