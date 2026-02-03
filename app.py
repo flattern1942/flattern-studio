@@ -3,38 +3,38 @@ import pandas as pd
 import os
 from PIL import Image, ImageOps, ImageFilter
 
-# --- 1. SETTINGS & BRANDING ---
+# --- 1. BRANDING INITIALIZATION ---
 st.set_page_config(layout="wide", page_title="Flattern Studio | Industrial CAD")
 
-# Main Header Logo
-if os.path.exists("logo.png.png"):
-    st.image("logo.png.png", width=200)
+# Defining your specific file names
+MAIN_LOGO = "logo.png.png"
+SIDEBAR_LOGO = "sidebar_logo.png.png"
 
-st.title("Flattern Studio | Forensic Pattern Extraction")
-
-# --- 2. THE PRODUCTION SIDEBAR (SIDEBAR LOGO RESTORED) ---
+# --- 2. THE SIDEBAR (SIDEBAR LOGO RESTORED) ---
 with st.sidebar:
-    # SIDEBAR LOGO
-    if os.path.exists("logo.png.png"):
-        st.image("logo.png.png", use_container_width=True)
+    if os.path.exists(SIDEBAR_LOGO):
+        st.image(SIDEBAR_LOGO, use_container_width=True)
     else:
-        st.info("Branding Mode: Sidebar Logo Placeholder")
-        
+        st.error(f"Missing: {SIDEBAR_LOGO}")
+    
     st.header("Security & Grading")
     admin_key = st.text_input("Admin Access Key", type="password")
     
     st.markdown("---")
-    st.subheader("Size Grading")
-    us_size = st.multiselect("US Sizes", ["0", "2", "4", "6", "8", "10", "12", "14", "16"], default=["6"])
-    uk_size = st.multiselect("UK Sizes", ["4", "6", "8", "10", "12", "14", "16", "18"], default=["10"])
-    
-    st.markdown("---")
     st.subheader("Freestyle Seam Allowance")
     unit = st.selectbox("Unit System", ["Inches", "Centimeters"])
-    # Freestyle SA input
+    # Your requested freestyle input
     user_sa = st.number_input(f"Seam Allowance ({unit})", value=0.5, step=0.125)
 
-# --- 3. THE MASTER SPECIFICATION TABLE ---
+# --- 3. THE MAIN HEADER (MAIN LOGO RESTORED) ---
+if os.path.exists(MAIN_LOGO):
+    st.image(MAIN_LOGO, width=200)
+else:
+    st.error(f"Missing: {MAIN_LOGO}")
+
+st.title("Flattern Studio | Forensic Pattern Extraction")
+
+# --- 4. THE MASTER SPECIFICATION TABLE ---
 st.header("1. Technical Measurement Table")
 spec_data = {
     "Point of Measure (POM)": ["Chest Width", "Waist Width", "CF Length", "Princess Seam", "Armhole Depth", "Cup Depth"],
@@ -44,7 +44,7 @@ spec_data = {
 }
 st.table(pd.DataFrame(spec_data))
 
-# --- 4. FORENSIC DECOMPOSITION ENGINE ---
+# --- 5. FORENSIC DECOMPOSITION ENGINE ---
 st.header("2. Sequential Pattern Breakdown")
 up = st.file_uploader("Upload Technical Flat for Architectural Conversion", type=['jpg', 'png', 'jpeg'])
 
@@ -58,6 +58,7 @@ if up:
     st.markdown("---")
     st.subheader("Step-by-Step Pattern Extraction")
 
+    # This isolates your CF, Side Panels, and Cups sequentially
     pieces = [
         {"name": "Center Front Panel", "box": (w*0.2, h*0.45, w*0.4, h*0.95), "id": "CF-01"},
         {"name": "Side Front Panel", "box": (w*0.4, h*0.45, w*0.65, h*0.9), "id": "SF-02"},
@@ -79,10 +80,7 @@ if up:
             st.image(trued_pattern, caption=f"Trued Pattern (+ {user_sa} {unit} SA)", use_container_width=True)
         st.markdown("---")
 
-    # --- 5. THE PRODUCTION EXPORT ---
-    st.header("3. Secure DWG Production Export")
+    # --- 6. THE PRODUCTION EXPORT ---
     if admin_key == "iLFT1991*":
         st.success(f"IP SECURE: DWG Ready with Custom {user_sa} {unit} SA")
         st.download_button("Download All Patterns (DWG)", data="CAD_BINARY_DATA", file_name="flattern_production.dwg")
-    else:
-        st.warning("Secure Portal Locked. Verify Admin Key for Production Download.")
