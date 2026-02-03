@@ -1,5 +1,6 @@
 streamlit
-numpy
-opencv-python-headless
-ezdxf
 pandas
+Pillow
+ezdxf
+streamlit-drawable-canvas
+numpy
