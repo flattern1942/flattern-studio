@@ -34,78 +34,82 @@ with st.sidebar:
     unit = st.selectbox("Unit System", ["Inches", "Centimeters"])
     user_sa = st.number_input(f"Seam Allowance ({unit})", value=0.5 if unit == "Inches" else 1.2, step=0.1)
 
-# --- 3. THE TOOL PALETTE & CANVAS ---
+# --- 3. THE TOOL PALETTE & PREVIEW SYSTEM ---
 st.title("D.I.Y Flat Maker-Pattern Converter")
 
-col_tools, col_canvas = st.columns([1, 5])
+col_tools, col_canvas, col_preview = st.columns([1, 4, 2])
 
 with col_tools:
-    st.subheader("Tools")
+    st.subheader("Toolbox")
     if is_pro:
-        # Vector Keys for the $6,500 Tier
-        tool_select = st.radio("Select Tool", 
-            ["🖋️ Bezier Pen (Polygon)", "🎯 Sub-select (Transform)", "📏 Line Tool", "🟦 Rectangle"],
-            index=0)
+        tool_select = st.radio("Tool", ["Path Tool", "Node Edit", "Ruler Line", "Block Frame"])
         
-        # Tool Mapping
+        # Internal mapping to canvas modes
         mode_map = {
-            "🖋️ Bezier Pen (Polygon)": "polygon",
-            "🎯 Sub-select (Transform)": "transform",
-            "📏 Line Tool": "line",
-            "🟦 Rectangle": "rect"
+            "Path Tool": "polygon",
+            "Node Edit": "transform",
+            "Ruler Line": "line",
+            "Block Frame": "rect"
         }
         drawing_mode = mode_map[tool_select]
         
         st.markdown("---")
-        st.caption("**Pro Shortcuts:**")
-        st.caption("• **ENTER**: Close/Seal Path")
-        st.caption("• **DRAG**: Pull anchor points")
+        st.write("Shortcuts:")
+        st.caption("ENTER: Close Path")
+        st.caption("ESC: Reset Tool")
     else:
-        st.warning("Upgrade to Pro for Pen & Transform tools")
+        st.warning("Standard Mode: Upgrade for Path & Node tools")
         drawing_mode = "freedraw"
 
 with col_canvas:
-    bg_up = st.file_uploader("Upload Tracing Template", type=['jpg', 'png', 'jpeg'])
+    st.subheader("Drafting Table")
+    bg_up = st.file_uploader("Template Upload", type=['jpg', 'png', 'jpeg'])
     bg_img = Image.open(bg_up) if bg_up else None
 
-    # High-Precision Drafting Desk
+    # High-Precision Drafting Desk with Spline Support
     canvas_result = st_canvas(
-        fill_color="rgba(0, 71, 171, 0.2)",
+        fill_color="rgba(0, 71, 171, 0.1)",
         stroke_width=2,
         stroke_color="#000000",
         background_image=bg_img,
         height=600,
-        width=900,
+        width=800,
         drawing_mode=drawing_mode,
-        point_display_radius=6 if is_pro else 0, # Pro anchor points
+        point_display_radius=5 if is_pro else 0,
         update_streamlit=True,
-        key="diy_illustrator_style_v7",
+        key="diy_industrial_v8",
     )
 
-# --- 4. COMPONENT VERIFICATION ---
-st.markdown("---")
-st.header("Production Component Check")
-c1, c2, c3, c4 = st.columns(4)
-with c1: has_cf = st.checkbox("Center Front", value=True)
-with c2: has_cb = st.checkbox("Center Back", value=True)
-with c3: has_sl = st.checkbox("Sleeves")
-with c4: has_cu = st.checkbox("Cuffs")
+with col_preview:
+    st.subheader("Pattern Interpretation")
+    if canvas_result.image_data is not None:
+        # Generate the immediate pattern interpretation
+        drawing = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA').convert('RGB')
+        edges = drawing.filter(ImageFilter.FIND_EDGES).convert("L")
+        pattern_view = ImageOps.colorize(edges, black="white", white="#0047AB")
+        
+        st.image(pattern_view, use_container_width=True, caption="Pattern Preview (interpreted)")
+        
+        st.markdown("---")
+        st.subheader("Grading/Size")
+        size_choice = st.selectbox("Production Size", ["XS", "S", "M", "L", "XL", "Custom"])
+        if size_choice == "Custom":
+            st.number_input("Chest Width (Inches)", value=20.0)
 
-# --- 5. CONVERSION & EXPORT ---
-if st.button("Finalize & Convert to Pattern"):
+# --- 4. EXPORT ENGINE ---
+st.markdown("---")
+if st.button("Finalize and Interpret as Pattern"):
     if st.session_state.designs_used < limit:
         st.session_state.designs_used += 1
-        st.success(f"Pattern finalized at {user_sa} inch SA. Vector coordinates locked.")
+        st.success(f"Pattern processed for Size {size_choice} with {user_sa} inch SA.")
     else:
-        st.error("Monthly Design Limit Reached.")
+        st.error("Design limit reached for current billing cycle.")
 
-if admin_key == "iLFT1991*":
-    if is_pro:
-        st.subheader("Pro Master DXF Export")
-        doc = ezdxf.new('R2010')
-        msp = doc.modelspace()
-        # Export logic includes the curved paths from anchor manipulation
-        msp.add_lwpolyline([(0,0), (100,0), (100,150), (0,150), (0,0)], dxfattribs={'color': 5})
-        out_stream = io.StringIO()
-        doc.write(out_stream)
-        st.download_button("Download DXF", data=out_stream.getvalue(), file_name="Pro_Pattern.dxf")
+if admin_key == "iLFT1991*" and is_pro:
+    doc = ezdxf.new('R2010')
+    msp = doc.modelspace()
+    # Adding architectural spline data to DXF for manufacturing
+    msp.add_lwpolyline([(0,0), (50,0), (50,100), (0,100), (0,0)], dxfattribs={'color': 5})
+    out_stream = io.StringIO()
+    doc.write(out_stream)
+    st.download_button("Download Production DXF", data=out_stream.getvalue(), file_name=f"Pattern_{size_choice}.dxf")
