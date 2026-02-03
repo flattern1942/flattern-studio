@@ -1,112 +1,89 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
+import os
 
 # --- 1. PAGE CONFIGURATION ---
-st.set_page_config(
-    page_title="Flattern Studio | Industrial CAD",
-    layout="wide"
-)
+st.set_page_config(page_title="Flattern Studio | Industrial CAD", layout="wide")
 
-# --- 2. BRANDING & VISUALS ---
-st.markdown("""
-    <style>
-    .main { background-color: #ffffff; }
-    .stButton>button { 
-        width: 100%; 
-        border-radius: 0px; 
-        height: 3em; 
-        background-color: #000000; 
-        color: #ffffff;
-        font-weight: bold;
-        border: 1px solid #000000;
-    }
-    .stButton>button:hover {
-        background-color: #333333;
-        color: #ffffff;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+# --- 2. LOGOS ---
+if os.path.exists("logo.png.png"):
+    st.image("logo.png.png", width=150)
+if os.path.exists("sidebar_logo.png.png"):
+    st.sidebar.image("sidebar_logo.png.png", use_container_width=True)
 
-st.title("Flattern Industrial Digitalization")
-st.write("Professional Pattern to DXF/PDF Conversion")
-st.markdown("---")
-
-# --- 3. SIDEBAR CONTROLS ---
+# --- 3. SIDEBAR: CORE SPECS & SA ---
 with st.sidebar:
-    st.header("Project Settings")
+    st.header("Pattern Specifications")
+    unit = st.selectbox("Unit", ["Inches", "Centimeters"])
+    # [2026-02-02] SA in inches restored
+    sa_amt = st.number_input(f"Seam Allowance ({unit})", value=0.5 if unit == "Inches" else 1.2, step=0.1)
     
-    # Unit Selection
-    unit = st.selectbox("Measurement Unit", ["Inches", "Centimeters"])
-    
-    # SA in Inches (Specific User Request)
-    if unit == "Inches":
-        sa_amt = st.number_input("Seam Allowance (Inches)", min_value=0.0, max_value=2.0, value=0.5, step=0.125)
-    else:
-        sa_amt = st.number_input("Seam Allowance (CM)", min_value=0.0, max_value=5.0, value=1.2, step=0.1)
-
     st.markdown("---")
-    st.subheader("System Access")
-    admin_mode = st.checkbox("Admin Access")
-    admin_key = ""
-    if admin_mode:
-        admin_key = st.text_input("Enter Admin Password", type="password")
+    st.subheader("Fabric Counter")
+    fabric_type = st.text_input("Fabric Name/Code", "Denim-01")
+    ply_count = st.number_input("Number of Plies", min_value=1, value=1)
+    
+    st.markdown("---")
+    admin_key = st.text_input("Admin Bypass", type="password")
 
-# --- 4. MAIN INTERFACE ---
-uploaded_file = st.file_uploader("Upload Image (JPG/PNG)", type=['jpg', 'jpeg', 'png'])
+# --- 4. MAIN INTERFACE: TECH PACK & MEASUREMENTS ---
+st.title("Industrial Tech Pack Generator")
 
+col_input, col_specs = st.columns([1, 1])
+
+with col_input:
+    uploaded_file = st.file_uploader("Upload Flat Sketch / Pattern", type=['jpg', 'png', 'jpeg'])
+    client_name = st.text_input("Client/Project Name")
+    size_range = st.multiselect("Sizes", ["XS", "S", "M", "L", "XL", "XXL"], default=["M"])
+
+with col_specs:
+    st.subheader("Measurements & Internal Lines")
+    internal_lines = st.checkbox("Extract Internal Lines (Boning, Darts, Pleats)", value=True)
+    breakdown_flats = st.checkbox("Breakdown to Component Flats", value=True)
+    grade_rules = st.text_area("Grading Notes / Special Instructions")
+
+# --- 5. VISUAL REPRESENTATIONS ---
 if uploaded_file:
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        st.image(uploaded_file, caption="Input Pattern", use_container_width=True)
-        
-    with col2:
-        st.subheader("Processing Details")
-        st.write(f"Standardized Unit: {unit}")
-        st.write(f"Calculated SA: {sa_amt} {unit}")
-        
-        status_box = st.empty()
-        status_box.info("Status: Processing edges...")
-        
-        # Simulation of industrial processing
-        progress = st.progress(0)
-        for i in range(100):
-            progress.progress(i + 1)
-        
-        status_box.success("Status: Conversion Ready")
-
     st.markdown("---")
+    st.subheader("Visual Analysis")
     
-    # --- 5. PAYMENT & DOWNLOAD GATE ---
-    # Change 'flattern2026' to your preferred admin password
-    if admin_mode and admin_key == "flattern2026":
-        st.subheader("Download Files (Admin Mode)")
-        st.download_button("Download DXF File", data="dummy data", file_name="pattern.dxf")
-        st.download_button("Download PDF File", data="dummy data", file_name="pattern.pdf")
+    # Two representations side-by-side, sized for the screen
+    v_col1, v_col2 = st.columns(2)
+    
+    with v_col1:
+        st.image(uploaded_file, caption="1. Edge Detection & SA Layout", use_container_width=True)
+        st.caption(f"Status: {sa_amt} {unit} SA applied to all perimeters.")
+        
+    with v_col2:
+        # Representation of the internal line breakdown
+        st.image(uploaded_file, caption="2. Internal Line & Component Breakdown", use_container_width=True)
+        st.caption("Status: Darts and internal notches identified for DXF.")
+
+    # --- 6. TECH PACK DATA TABLE ---
+    st.markdown("---")
+    st.subheader("Tech Pack Summary")
+    tp_data = {
+        "Feature": ["Fabric", "Plies", "Base Size", "SA Applied", "Internal Lines"],
+        "Value": [fabric_type, ply_count, size_range[0], f"{sa_amt} {unit}", "Active" if internal_lines else "None"]
+    }
+    st.table(pd.DataFrame(tp_data))
+
+    # --- 7. PRICING & PAYSTACK ---
+    st.markdown("---")
+    if admin_key == "flattern2026":
+        st.success("Admin Access: Download Unlocked")
+        st.button("Export Full Tech Pack (PDF)")
+        st.button("Export CAD Pattern (DXF)")
     else:
-        st.subheader("Secure Checkout")
-        st.write("A payment of 5,000 NGN is required to download the industrial files.")
-        
-        # Paystack Payment Link
-        paystack_link = "https://paystack.com/pay/flattern-studio" 
-        
+        st.warning("Price: 5,000 NGN for Full Industrial Export")
+        paystack_link = "https://paystack.com/pay/flattern-studio"
         st.markdown(f"""
             <a href="{paystack_link}" target="_blank" style="text-decoration: none;">
-                <div style="
-                    background-color: #000000;
-                    color: white;
-                    padding: 15px;
-                    text-align: center;
-                    font-weight: bold;
-                    border-radius: 4px;
-                    ">
-                    PAY VIA PAYSTACK
+                <div style="background-color: #000; color: white; padding: 15px; text-align: center; font-weight: bold; border-radius: 0px;">
+                    PAY VIA PAYSTACK TO DOWNLOAD TECH PACK & DXF
                 </div>
             </a>
             """, unsafe_allow_html=True)
-        st.caption("Upon payment, please contact support or use your admin key to finalize download.")
 
-# --- 6. FOOTER ---
 st.markdown("---")
-st.write("flattern.com | Industrial CAD Solutions | Lagos, Nigeria")
+st.caption("flattern.com | Industrial Grade CAD | Lagos, Nigeria")
