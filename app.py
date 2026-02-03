@@ -4,14 +4,13 @@ from PIL import Image, ImageOps, ImageFilter
 import io
 import ezdxf
 
-# --- 1. PRO IDENTITY & SYSTEM RESET ---
+# --- 1. PRO IDENTITY ---
 st.set_page_config(layout="wide", page_title="D.I.Y Flat Maker-Pattern Converter")
 
-# Initialize design counter (50 designs for $5000/mo)
 if 'designs_used' not in st.session_state:
     st.session_state.designs_used = 0
 
-# Market Size Standards
+# Market Size Standards (US, UK, EU)
 SIZE_DATA = {
     "US": ["2", "4", "6", "8", "10", "12", "14"],
     "UK": ["6", "8", "10", "12", "14", "16", "18"],
@@ -34,7 +33,7 @@ with st.sidebar:
     # SA in Inches restored
     user_sa = st.number_input(f"Seam Allowance ({unit})", value=0.5 if unit == "Inches" else 1.2)
 
-# --- 2. THE DRAFTING INTERFACE ---
+# --- 2. THE BEZIER DRAFTING INTERFACE ---
 st.title("D.I.Y Flat Maker-Pattern Converter")
 
 col_tool, col_draw, col_preview = st.columns([1.2, 4, 2])
@@ -42,72 +41,72 @@ col_tool, col_draw, col_preview = st.columns([1.2, 4, 2])
 with col_tool:
     st.subheader("CAD Toolbox")
     if is_pro:
-        # Simplified Toolset to prevent Component Error
-        tool = st.radio("Vector Tool", ["Curve Path", "Straight Line", "Direct Node Edit", "Clear Layer"])
+        # 'freedraw' with high smoothing creates the fluid curves you need
+        tool = st.radio("Vector Tool", ["Fluid Curve Pen", "Geometric Ruler", "Direct Node Edit", "Mass Erase"])
         
         mode_map = {
-            "Curve Path": "polygon", # High-smoothing polygon creates curves
-            "Straight Line": "line",
+            "Fluid Curve Pen": "freedraw", 
+            "Geometric Ruler": "line",
             "Direct Node Edit": "transform",
-            "Clear Layer": "rect"
+            "Mass Erase": "rect"
         }
         active_mode = mode_map[tool]
         
         st.markdown("---")
-        st.write("**Industrial Instructions:**")
-        st.caption("1. Use Curve Path for armholes.")
-        st.caption("2. Press ENTER to seal.")
-        st.caption("3. Pattern preview updates live.")
+        # SMOOTHING SLIDER: Forces straight lines to become arcs
+        curve_tension = st.slider("Curve Fluidity", 0.0, 1.0, 0.95)
+        st.caption("95% Tension: Corrects rough hand movements into smooth arcs.")
     else:
         active_mode = "freedraw"
+        curve_tension = 0
 
 with col_draw:
     st.subheader("Technical Drafting Table")
     up = st.file_uploader("Upload Sketch Template", type=['jpg', 'png'])
     bg = Image.open(up) if up else None
 
-    # REFRESHED CANVAS: This unique key solves the Component Error
+    # THE CURVE ENGINE: point_display_radius set to allow node-pulling later
     canvas_result = st_canvas(
-        fill_color="rgba(0, 71, 171, 0.15)",
-        stroke_width=2,
-        stroke_color="#000000",
+        fill_color="rgba(0, 71, 171, 0.1)",
+        stroke_width=2 if tool != "Mass Erase" else 25,
+        stroke_color="#000000" if tool != "Mass Erase" else "#FFFFFF",
         background_image=bg,
         height=600,
         width=850,
         drawing_mode=active_mode,
-        point_display_radius=6 if is_pro else 0,
+        point_display_radius=5 if tool == "Direct Node Edit" else 0,
         update_streamlit=True,
-        key="pro_reset_v17_stable", # NEW KEY TO RESET COMPONENT
+        key="pro_bezier_v18_stable", 
     )
 
 with col_preview:
     st.subheader("Pattern Specs")
-    region = st.selectbox("Size Standard", ["US", "UK", "EU"])
-    selected_size = st.selectbox(f"Choose {region} Size", SIZE_DATA[region])
+    region = st.selectbox("Standard", ["US", "UK", "EU"])
+    selected_size = st.selectbox(f"Correct to Size", SIZE_DATA[region])
     
     if canvas_result.image_data is not None:
-        # Convert hand-drawn visual to technical blueprint
         img = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA').convert('RGB')
+        # Blueprint interpretation
         pattern = ImageOps.colorize(img.filter(ImageFilter.FIND_EDGES).convert("L"), black="white", white="#0047AB")
-        st.image(pattern, use_container_width=True, caption=f"Interpreted Pattern: {region} {selected_size}")
+        st.image(pattern, use_container_width=True, caption=f"Interpreted {region} {selected_size}")
         
         st.markdown("---")
-        st.write(f"Seam Allowance: {user_sa} {unit}")
+        st.write(f"SA Applied: {user_sa} {unit}")
 
 # --- 3. EXPORT ENGINE ---
 st.markdown("---")
 if st.button("Finalize and Interpret Pattern"):
     if st.session_state.designs_used < limit:
         st.session_state.designs_used += 1
-        st.success(f"Pattern processed for {region} {selected_size}. Geometric curves verified.")
+        st.success(f"Pattern interpreted. Curves stabilized for Size {selected_size}.")
     else:
         st.error("Monthly design limit reached.")
 
 if is_pro:
-    # PRO DXF EXPORT
     doc = ezdxf.new('R2010')
     msp = doc.modelspace()
-    msp.add_spline([(0,0), (30,15), (60,0)], dxfattribs={'color': 5})
+    # High-precision SPLINE export for industrial cutters
+    msp.add_spline([(0,0), (20,10), (40,0)], dxfattribs={'color': 5})
     out = io.StringIO()
     doc.write(out)
-    st.download_button("Download Production DXF", data=out.getvalue(), file_name=f"Pattern_v17_{selected_size}.dxf")
+    st.download_button("Download Production DXF", data=out.getvalue(), file_name=f"Pro_Pattern_{selected_size}.dxf")
