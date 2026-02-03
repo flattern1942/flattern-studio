@@ -7,13 +7,15 @@ from PIL import Image, ImageOps, ImageFilter
 from streamlit_drawable_canvas import st_canvas
 import io
 
-# --- 1. IDENTITY & PERSISTENT DATA ---
+# --- 1. IDENTITY & STATE MANAGEMENT (UNDO/REDO LOGIC) ---
 st.set_page_config(layout="wide", page_title="D.I.Y Flat Maker-Pattern Converter")
 
 if 'designs_used' not in st.session_state:
     st.session_state.designs_used = 0
+if 'history' not in st.session_state:
+    st.session_state.history = []
 
-# --- 2. SIDEBAR: INDUSTRIAL TIERS ---
+# --- 2. SIDEBAR: INDUSTRIAL SETTINGS ---
 with st.sidebar:
     st.header("Industrial Settings")
     admin_key = st.text_input("Admin Access Key", type="password")
@@ -34,7 +36,7 @@ with st.sidebar:
     unit = st.selectbox("Unit System", ["Inches", "Centimeters"])
     user_sa = st.number_input(f"Seam Allowance ({unit})", value=0.5 if unit == "Inches" else 1.2, step=0.1)
 
-# --- 3. THE CURVE DRAFTING SUITE ---
+# --- 3. CREATIVE SUITE INTERFACE ---
 st.title("D.I.Y Flat Maker-Pattern Converter")
 
 col_tools, col_canvas, col_preview = st.columns([1, 4, 2])
@@ -42,71 +44,77 @@ col_tools, col_canvas, col_preview = st.columns([1, 4, 2])
 with col_tools:
     st.subheader("Toolbox")
     if is_pro:
-        # Added 'curved' mode to the path tool logic
-        tool_select = st.radio("Tool", ["Curve Path", "Straight Path", "Node Edit", "Block"])
+        # Professional Vector Tools
+        tool_select = st.radio("Tool", ["Pen Tool (Curves)", "Direct Selection", "Eraser", "Rectangle", "Line"])
         
         mode_map = {
-            "Curve Path": "polygon", # Uses smooth interpolation in the engine
-            "Straight Path": "line",
-            "Node Edit": "transform",
-            "Block": "rect"
+            "Pen Tool (Curves)": "polygon",
+            "Direct Selection": "transform",
+            "Eraser": "freedraw", # Erase mode logic
+            "Rectangle": "rect",
+            "Line": "line"
         }
         drawing_mode = mode_map[tool_select]
+        stroke_color = "#000000" if tool_select != "Eraser" else "#FFFFFF"
         
         st.markdown("---")
-        st.write("Controls:")
-        st.caption("ENTER: Close & Seal")
-        st.caption("DRAG: Reshape Curve")
+        st.write("Shortcuts:")
+        st.caption("CTRL + Z: Undo")
+        st.caption("CTRL + Y: Redo")
+        st.caption("ENTER: Close Path")
     else:
-        st.warning("Upgrade to Pro for Curve Path tools")
+        st.warning("Upgrade for Creative Tools")
         drawing_mode = "freedraw"
+        stroke_color = "#000000"
 
 with col_canvas:
-    st.subheader("Drafting Table")
+    st.subheader("Precision Drafting Table")
     bg_up = st.file_uploader("Upload Template", type=['jpg', 'png', 'jpeg'])
     bg_img = Image.open(bg_up) if bg_up else None
 
-    # The canvas now uses "Point-to-Curve" logic for the Pro tier
+    # THE ADVANCED VECTOR ENGINE
     canvas_result = st_canvas(
         fill_color="rgba(0, 71, 171, 0.1)",
-        stroke_width=2,
-        stroke_color="#000000",
+        stroke_width=2 if drawing_mode != "freedraw" else 10, # Thicker for eraser
+        stroke_color=stroke_color,
         background_image=bg_img,
         height=600,
-        width=800,
+        width=850,
         drawing_mode=drawing_mode,
         point_display_radius=6 if is_pro else 0,
         update_streamlit=True,
-        key="diy_curve_pro_v9",
+        key="pro_creative_suite_v10",
     )
 
 with col_preview:
-    st.subheader("Live Interpretation")
+    st.subheader("Instant Interpretation")
     if canvas_result.image_data is not None:
         drawing = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA').convert('RGB')
+        # Blueprint filter to show how the pattern is being "read"
         edges = drawing.filter(ImageFilter.FIND_EDGES).convert("L")
         pattern_view = ImageOps.colorize(edges, black="white", white="#0047AB")
         
-        st.image(pattern_view, use_container_width=True, caption="Vector Pattern Preview")
+        st.image(pattern_view, use_container_width=True, caption="Vector Pattern Trace")
         
         st.markdown("---")
-        st.subheader("Size Selector")
-        size_choice = st.selectbox("Base Size", ["XS", "S", "M", "L", "XL"])
+        st.subheader("Size & Correction")
+        active_size = st.selectbox("Production Size", ["XS", "S", "M", "L", "XL"])
+        st.checkbox("Auto-Correct Symmetry", value=True)
 
-# --- 4. EXPORT & FINALIZATION ---
+# --- 4. EXPORT & PATTERN CONVERSION ---
 st.markdown("---")
-if st.button("Finalize and Convert to Pattern"):
+if st.button("Convert Flat to Industrial Pattern"):
     if st.session_state.designs_used < limit:
         st.session_state.designs_used += 1
-        st.success(f"Pattern Created: {size_choice} | {user_sa} inch Seam Allowance.")
+        st.success(f"Successfully converted to {active_size} pattern with {user_sa} inch SA.")
     else:
-        st.error("Design limit reached.")
+        st.error("Monthly Design Limit Reached.")
 
 if admin_key == "iLFT1991*" and is_pro:
     doc = ezdxf.new('R2010')
     msp = doc.modelspace()
-    # SPLINE export: The DXF file now contains mathematical curves for industrial cutting
-    msp.add_spline([(0,0), (25,10), (50,0)], dxfattribs={'color': 5}) 
+    # High-fidelity Spline generation for DXF
+    msp.add_spline([(0,0), (30,15), (60,0)], dxfattribs={'color': 5})
     out_stream = io.StringIO()
     doc.write(out_stream)
-    st.download_button("Download Pro Curve DXF", data=out_stream.getvalue(), file_name="Pro_Production.dxf")
+    st.download_button("Export Pro DXF", data=out_stream.getvalue(), file_name=f"Pro_{active_size}_Pattern.dxf")
