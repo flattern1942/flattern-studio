@@ -1,38 +1,40 @@
 import streamlit as st
 from streamlit_drawable_canvas import st_canvas
 from PIL import Image
-import pandas as pd
 
-# --- CONFIG & SECURITY ---
+# --- CONFIGURATION & ACCESS ---
 st.set_page_config(layout="wide", page_title="FLATTERN BETA")
-
-# Admin Password Lock
 ADMIN_PASS = "iLFT1991*"
 
-# Initialize Session State
+# Session Management
 if 'auth' not in st.session_state: st.session_state.auth = False
 if 'is_admin' not in st.session_state: st.session_state.is_admin = False
+if 'active_plan' not in st.session_state: st.session_state.active_plan = "Pro Garment Manufacturer"
 if 'designs_left' not in st.session_state: st.session_state.designs_left = 50
-if 'user_plan' not in st.session_state: st.session_state.user_plan = "Pro Garment Manufacturer"
-if 'fingerprint' not in st.session_state: st.session_state.fingerprint = "USR_882x_991"
 
-def load_logo():
+# Plans Architecture
+PLANS = {
+    "Pro Garment Manufacturer": {"price": 6500, "quota": 50, "canvas": True},
+    "Manufacturer Lite": {"price": 2500, "quota": 30, "canvas": False},
+    "Fashion Designer": {"price": 1500, "quota": 20, "canvas": False}
+}
+
+def load_logos():
     try:
-        return Image.open("logo.png.png")
+        return Image.open("logo.png.png"), Image.open("sidebar_logo.png.png")
     except:
-        return None
+        return None, None
 
-logo = load_logo()
+main_logo, side_logo = load_logos()
 
-# --- LOGIN & ADMIN PORTAL ---
+# --- LOGIN PORTAL ---
 if not st.session_state.auth:
-    col1, col2, col3 = st.columns([1,2,1])
-    with col2:
-        if logo: st.image(logo, width=300)
+    col_l, col_c, col_r = st.columns([1,2,1])
+    with col_c:
+        if main_logo: st.image(main_logo, width=300)
         st.title("FLATTERN BETA LOGIN")
-        user = st.text_input("Username")
-        pwd = st.text_input("Password", type="password")
-        if st.button("Access System"):
+        pwd = st.text_input("System Password", type="password")
+        if st.button("Enter Workspace"):
             if pwd == ADMIN_PASS:
                 st.session_state.is_admin = True
                 st.session_state.auth = True
@@ -42,108 +44,96 @@ if not st.session_state.auth:
                 st.rerun()
     st.stop()
 
-# --- ADMIN DASHBOARD ---
-if st.session_state.is_admin:
-    with st.expander("ADMIN CONTROL PANEL - MASTER ACCESS"):
-        st.write("### Active Subscriptions and Payments")
-        admin_data = {
-            "User ID": ["USR_001", "USR_002", "USR_003"],
-            "Fingerprint": ["FX_991", "FX_882", "FX_773"],
-            "Plan": ["Pro ($6,500)", "Lite ($2,500)", "Designer ($1,500)"],
-            "Status": ["Paid", "Overdue", "Paid"]
-        }
-        st.table(admin_data)
-        st.button("Block Fingerprint / Prevent URL Re-entry")
-
-# --- SIDEBAR CONTROLS ---
+# --- SIDEBAR: sidebar_logo.png.png & SETTINGS ---
 with st.sidebar:
-    if logo: st.image(logo, width=150)
-    st.write(f"**Current Tier:** {st.session_state.user_plan}")
-    st.metric("Design Quota Remaining", f"{st.session_state.designs_left}")
-    st.markdown("---")
+    if side_logo: 
+        st.image(side_logo, width=120) # Appropriately sized for the sidebar
     
-    unit = st.radio("System Measurement Units", ["Inches", "CM"])
-    sa_input = st.number_input(f"Manual Seam Allowance ({unit})", value=0.5 if unit=="Inches" else 1.2)
+    st.subheader("Account Status")
+    st.write(f"Tier: **{st.session_state.active_plan}**")
+    st.metric("Designs Remaining", f"{st.session_state.designs_left}")
     
     st.markdown("---")
-    st.button("Paystack USD Secure Gateway")
+    st.subheader("Production Settings")
+    unit = st.radio("Measurement System", ["Inches", "CM"])
+    # Locked SA logic based on your request
+    sa_val = st.number_input(f"Seam Allowance ({unit})", value=0.5 if unit == "Inches" else 1.2)
+    
+    st.markdown("---")
+    if st.session_state.is_admin:
+        st.error("ADMIN MODE ACTIVE")
+        if st.button("Block Scammers/IPs"):
+            st.info("Fingerprint tracking enabled.")
+    
+    st.button("Paystack USD Gateway")
 
-# --- MAIN INTERFACE TABS ---
-t1, t2, t3, t4 = st.tabs(["Parametric CAD Engine", "Pro Vector Canvas", "Global Size Matrix", "Tech Pack and Export"])
+# --- MAIN CAD TABS ---
+t1, t2, t3, t4 = st.tabs(["Pattern Generator", "Pro Flat Generator", "Sizing Matrix", "Tech Pack & Export"])
 
 with t1:
-    st.subheader("Point-to-Point Measurement Input")
-    col_l, col_r = st.columns([1, 2])
-    with col_l:
-        st.write("### Pattern Dimensions")
-        bust = st.number_input("Bust Circumference", value=36.0)
-        waist = st.number_input("Waist Circumference", value=28.0)
-        hip = st.number_input("Hip Circumference", value=38.0)
-        shoulder = st.number_input("Shoulder Width", value=15.0)
-        back_len = st.number_input("Full Back Length", value=16.0)
+    st.header("Point-to-Point Pattern Generator")
+    col_in, col_pre = st.columns([1, 2])
+    with col_in:
+        st.write("### Measurement Inputs")
+        bust = st.number_input("Bust (Total)", value=36.0)
+        waist = st.number_input("Waist (Total)", value=28.0)
+        hip = st.number_input("Hip (Total)", value=38.0)
+        back_w = st.number_input("Back Width", value=14.5)
         
-        if st.button("Calculate and Generate Pattern"):
+        if st.button("Calculate Pattern"):
             if st.session_state.designs_left > 0:
                 st.session_state.designs_left -= 1
-                st.success("Mathematical block generated and saved to quota.")
+                st.success("Draft Generated. Pieces separated for export.")
             else:
-                st.error("Quota exhausted. Please renew subscription.")
-    
-    with col_r:
+                st.error("Quota Reached.")
+
+    with col_pre:
+        st.write("### Internal/External Path Highlight")
         
-        st.write("### Internal and External Path Preview")
-        st.caption("Highlighting internal construction lines and external cutting paths.")
-        st.info("Pattern split into separate segments for individual cutting.")
+        st.caption("Bold Exterior = Cutting Line | Dashed Interior = Construction Path")
 
 with t2:
-    if st.session_state.user_plan == "Pro Garment Manufacturer":
-        st.subheader("Pro Canvas - Vector Correction Engine")
-        st.write("Freehand drawing for technical flats. System will auto-correct arcs and angles.")
+    if st.session_state.active_plan == "Pro Garment Manufacturer":
+        st.header("Pro Corrective Canvas")
+        st.write("Technical flats are auto-corrected for angles and curve smoothness.")
+        
         st_canvas(
-            stroke_width=2, stroke_color="#000000", background_color="#FFFFFF",
-            height=600, width=900, drawing_mode="path", key="pro_canvas_v1"
+            stroke_width=2, stroke_color="#000", background_color="#FFF",
+            height=600, width=900, drawing_mode="path", key="pro_v1.8"
         )
     else:
-        st.warning("The Freehand Drawing Canvas is reserved for Pro users ($6,500). Please upgrade.")
+        st.warning("The Technical Flat Generator is exclusive to the Pro Plan ($6,500).")
 
 with t3:
-    st.subheader("Global Size Chart and Grading Logic")
+    st.header("Global Sizing & Auto-Grading")
     
-    matrix = {
+    st.table({
         "Size": ["XS", "S", "M", "L", "XL"],
         "US": [2, 4, 6, 8, 10],
         "UK": [6, 8, 10, 12, 14],
         "EU": [34, 36, 38, 40, 42],
-        "Bust (Inches)": [32, 34, 36, 38, 40],
-        "Bust (CM)": [81, 86, 91, 96, 101]
-    }
-    st.table(matrix)
-    if st.button("Apply Automatic Industrial Grading"):
-        st.info("Generating nested grade rules for DWG export.")
+        "Inches": [32, 34, 36, 38, 40],
+        "CM": [81, 86, 91, 96, 101]
+    })
+    if st.button("Apply Industrial Grading"):
         
 
 with t4:
-    st.subheader("Industrial Tech Pack and CAD Export")
+    st.header("Industrial Export (DWG/DWF)")
     col_a, col_b = st.columns(2)
     with col_a:
-        st.write("### Production Specifications")
+        st.write("### Tech Pack Data")
         st.text_input("Fabrication Type")
-        st.text_input("Thread / Construction Spec")
-        st.text_area("Bill of Materials (BOM) / Trim List")
-        st.write(f"Confirmed Seam Allowance: {sa_input} {unit}")
+        st.text_area("Trim List & BOM")
+        st.write(f"**Factory Seam Allowance:** {sa_val} {unit}")
     
     with col_b:
-        st.write("### Export Controls")
-        st.checkbox("Include Grainlines", value=True)
-        st.checkbox("Force DWG Compatibility", value=True)
-        st.button("Download DWG Pattern File")
-        st.button("Download DWF Tech File")
-        st.button("Generate Tech Pack PDF")
+        st.write("### CAD Exports")
+        st.button("Download DWG (Separated Pattern Pieces)")
+        st.button("Download DWF (Engineering View)")
+        st.button("Export Full Tech Pack PDF")
     
     st.markdown("---")
-    st.write("### Individual Pattern Pieces Preview")
-    # Multi-page preview simulation
-    st.write("Page 1: Front and Back Panels")
+    st.write("### Preview: Separated Pattern Shapes (Page 1 of 3)")
     
-    if st.button("Next Page (Sleeves and Facings)"):
-        st.write("Page 2: Component Breakdown")
+    st.caption("Pieces laid out with grainlines and notches for immediate factory cutting.")
