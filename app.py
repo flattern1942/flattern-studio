@@ -75,25 +75,22 @@ with t2:
         st.write("Sketch technical flats. System corrects curves for DWG/DWF conversion.")
         
         
-        # STABILITY FIX: Forced unique key and background clearing to stop 'z[d]' error
+        # COMPONENT ERROR FIX: Forced unique key and specific background to stop JavaScript crash
         st_canvas(
-            fill_color="rgba(255, 165, 0, 0.3)", 
             stroke_width=2,
             stroke_color="#000000",
             background_color="#FFFFFF",
-            update_streamlit=True,
             height=500,
             width=900,
             drawing_mode="path",
-            key="pro_canvas_stable_v3"
+            key="pro_canvas_fixed_v2"
         )
     else:
         st.header("Flat Management (Lite/Designer)")
-        st.info("You are on a Parametric Tier. Please upload your flat sketch to include it in the Tech Pack.")
-        uploaded_flat = st.file_uploader("Upload Technical Flat (PNG/JPG)", type=["png", "jpg", "jpeg"])
-        if uploaded_flat:
-            st.image(uploaded_flat, caption="Uploaded Flat for Tech Pack", width=400)
-            st.success("Flat attached to current design draft.")
+        st.info("Please upload your technical flat sketch to include it in the factory export.")
+        uploaded_file = st.file_uploader("Upload Flat (PNG/JPG)", type=["png", "jpg", "jpeg"])
+        if uploaded_file:
+            st.image(uploaded_file, caption="Attached Technical Flat", width=400)
 
 with t3:
     st.header("Global Sizing & Auto-Grading")
@@ -118,7 +115,11 @@ with t4:
     st.markdown("---")
     st.write("### Individual Piece Verification (Page View)")
     page = st.selectbox("View Piece", ["Page 1: Bodice", "Page 2: Sleeves"])
+    
+    # FIXED INDENTATION
     if page == "Page 1: Bodice":
+        st.write("Previewing separated patterns.")
         
     else:
-        st.info("Visualizing sleeve component breakdown.")
+        st.write("Previewing individual sleeve components.")
+        st.info("Ready for DWF export.")
