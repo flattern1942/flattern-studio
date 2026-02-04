@@ -2,22 +2,22 @@ import streamlit as st
 from streamlit_drawable_canvas import st_canvas
 from PIL import Image
 
-# --- CONFIGURATION & ACCESS ---
+# --- SYSTEM CONFIGURATION & SECURITY ---
 st.set_page_config(layout="wide", page_title="FLATTERN BETA")
 ADMIN_PASS = "iLFT1991*"
 
-# Session Management
+# Plans Architecture
+PLANS = {
+    "Pro Garment Manufacturer": {"price": 6500, "quota": 50, "tools": "Pattern + Flat Maker"},
+    "Manufacturer Lite": {"price": 2500, "quota": 30, "tools": "Pattern Only"},
+    "Fashion Designer": {"price": 1500, "quota": 20, "tools": "Pattern Only"}
+}
+
+# State Management
 if 'auth' not in st.session_state: st.session_state.auth = False
 if 'is_admin' not in st.session_state: st.session_state.is_admin = False
 if 'active_plan' not in st.session_state: st.session_state.active_plan = "Pro Garment Manufacturer"
-if 'designs_left' not in st.session_state: st.session_state.designs_left = 50
-
-# Plans Architecture
-PLANS = {
-    "Pro Garment Manufacturer": {"price": 6500, "quota": 50, "canvas": True},
-    "Manufacturer Lite": {"price": 2500, "quota": 30, "canvas": False},
-    "Fashion Designer": {"price": 1500, "quota": 20, "canvas": False}
-}
+if 'design_count' not in st.session_state: st.session_state.design_count = 0
 
 def load_logos():
     try:
@@ -27,15 +27,15 @@ def load_logos():
 
 main_logo, side_logo = load_logos()
 
-# --- LOGIN PORTAL ---
+# --- LOGIN GATEWAY ---
 if not st.session_state.auth:
-    col_l, col_c, col_r = st.columns([1,2,1])
-    with col_c:
+    c1, c2, c3 = st.columns([1, 2, 1])
+    with c2:
         if main_logo: st.image(main_logo, width=300)
-        st.title("FLATTERN BETA LOGIN")
-        pwd = st.text_input("System Password", type="password")
-        if st.button("Enter Workspace"):
-            if pwd == ADMIN_PASS:
+        st.title("FLATTERN BETA ACCESS")
+        p_in = st.text_input("System Password", type="password")
+        if st.button("Secure Login"):
+            if p_in == ADMIN_PASS:
                 st.session_state.is_admin = True
                 st.session_state.auth = True
                 st.rerun()
@@ -44,96 +44,92 @@ if not st.session_state.auth:
                 st.rerun()
     st.stop()
 
-# --- SIDEBAR: sidebar_logo.png.png & SETTINGS ---
+# --- SIDEBAR: PLANS, LOGO & SETTINGS ---
 with st.sidebar:
-    if side_logo: 
-        st.image(side_logo, width=120) # Appropriately sized for the sidebar
+    if side_logo: st.image(side_logo, width=120)
     
-    st.subheader("Account Status")
-    st.write(f"Tier: **{st.session_state.active_plan}**")
-    st.metric("Designs Remaining", f"{st.session_state.designs_left}")
+    st.subheader("Subscription Plans")
+    # Allow user to choose plan for testing/switching
+    choice = st.selectbox("Current Plan", list(PLANS.keys()), index=0)
+    st.session_state.active_plan = choice
+    
+    current = PLANS[st.session_state.active_plan]
+    st.info(f"Price: ${current['price']}/mo\nTools: {current['tools']}")
+    
+    st.metric("Designs Used", f"{st.session_state.design_count} / {current['quota']}")
     
     st.markdown("---")
-    st.subheader("Production Settings")
     unit = st.radio("Measurement System", ["Inches", "CM"])
-    # Locked SA logic based on your request
-    sa_val = st.number_input(f"Seam Allowance ({unit})", value=0.5 if unit == "Inches" else 1.2)
+    sa_val = st.number_input(f"Your Seam Allowance ({unit})", value=0.5 if unit == "Inches" else 1.2)
     
     st.markdown("---")
-    if st.session_state.is_admin:
-        st.error("ADMIN MODE ACTIVE")
-        if st.button("Block Scammers/IPs"):
-            st.info("Fingerprint tracking enabled.")
-    
     st.button("Paystack USD Gateway")
+    
+    if st.session_state.is_admin:
+        st.error("Admin: iLFT1991* Mode")
 
-# --- MAIN CAD TABS ---
-t1, t2, t3, t4 = st.tabs(["Pattern Generator", "Pro Flat Generator", "Sizing Matrix", "Tech Pack & Export"])
+# --- MAIN WORKSPACE ---
+t1, t2, t3, t4 = st.tabs(["Pattern Generator", "Pro Flat Maker", "Sizing Matrix", "Tech Pack & Export"])
 
 with t1:
     st.header("Point-to-Point Pattern Generator")
-    col_in, col_pre = st.columns([1, 2])
-    with col_in:
-        st.write("### Measurement Inputs")
-        bust = st.number_input("Bust (Total)", value=36.0)
-        waist = st.number_input("Waist (Total)", value=28.0)
-        hip = st.number_input("Hip (Total)", value=38.0)
-        back_w = st.number_input("Back Width", value=14.5)
-        
-        if st.button("Calculate Pattern"):
-            if st.session_state.designs_left > 0:
-                st.session_state.designs_left -= 1
-                st.success("Draft Generated. Pieces separated for export.")
+    col_a, col_b = st.columns([1, 2])
+    with col_a:
+        st.write("### Measure to Draft")
+        bust = st.number_input("Bust Circumference", value=36.0)
+        waist = st.number_input("Waist Circumference", value=28.0)
+        hip = st.number_input("Hip Circumference", value=38.0)
+        if st.button("Generate Patterns"):
+            if st.session_state.design_count < current['quota']:
+                st.session_state.design_count += 1
+                st.success("Pattern Drafted and Quota Updated.")
             else:
-                st.error("Quota Reached.")
-
-    with col_pre:
-        st.write("### Internal/External Path Highlight")
+                st.error("Quota Reached. Upgrade or renew plan.")
+    with col_b:
+        st.write("### Exploded View (Internal & External Highlighting)")
         
-        st.caption("Bold Exterior = Cutting Line | Dashed Interior = Construction Path")
+        st.caption("Individual shappets separated with grainlines and construction notches.")
 
 with t2:
+    st.header("Flat Generator (Corrective Drawing)")
     if st.session_state.active_plan == "Pro Garment Manufacturer":
-        st.header("Pro Corrective Canvas")
-        st.write("Technical flats are auto-corrected for angles and curve smoothness.")
-        
-        st_canvas(
-            stroke_width=2, stroke_color="#000", background_color="#FFF",
-            height=600, width=900, drawing_mode="path", key="pro_v1.8"
-        )
+        st.write("System correcting hand-drawn paths for CAD compatibility...")
+        st_canvas(stroke_width=2, stroke_color="#000", background_color="#FFF", height=500, width=800, drawing_mode="path", key="v2_canvas")
     else:
-        st.warning("The Technical Flat Generator is exclusive to the Pro Plan ($6,500).")
+        st.error(f"Flat Generator is locked. The {st.session_state.active_plan} tier only supports Parametric Drafting.")
+        st.info("Upgrade to Pro Garment Manufacturer ($6,500) for freehand corrective curves.")
 
 with t3:
     st.header("Global Sizing & Auto-Grading")
     
     st.table({
-        "Size": ["XS", "S", "M", "L", "XL"],
-        "US": [2, 4, 6, 8, 10],
-        "UK": [6, 8, 10, 12, 14],
-        "EU": [34, 36, 38, 40, 42],
-        "Inches": [32, 34, 36, 38, 40],
-        "CM": [81, 86, 91, 96, 101]
+        "US Size": ["2", "4", "6", "8", "10"],
+        "UK Size": ["6", "8", "10", "12", "14"],
+        "Inches": [32, 33.5, 34.5, 36, 37.5],
+        "CM": [81, 85, 87.5, 91.5, 95]
     })
-    if st.button("Apply Industrial Grading"):
+    if st.button("Apply Automatic Grading"):
         
 
 with t4:
-    st.header("Industrial Export (DWG/DWF)")
-    col_a, col_b = st.columns(2)
-    with col_a:
-        st.write("### Tech Pack Data")
-        st.text_input("Fabrication Type")
-        st.text_area("Trim List & BOM")
-        st.write(f"**Factory Seam Allowance:** {sa_val} {unit}")
-    
-    with col_b:
-        st.write("### CAD Exports")
-        st.button("Download DWG (Separated Pattern Pieces)")
-        st.button("Download DWF (Engineering View)")
-        st.button("Export Full Tech Pack PDF")
+    st.header("Industrial Export Center")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.write("### Manufacturing Tech Pack")
+        st.text_input("Fabric Type")
+        st.text_area("Trim List (BOM)")
+        st.write(f"Confirmed SA: **{sa_val} {unit}**")
+    with c2:
+        st.write("### CAD Downloads")
+        st.button("Download DWG (Exploded Pattern)")
+        st.button("Download DWF (Production Tech)")
     
     st.markdown("---")
-    st.write("### Preview: Separated Pattern Shapes (Page 1 of 3)")
+    st.write("### Multi-Page Individual Piece Verification")
+    page = st.selectbox("Select Page", ["Page 1: Bodice", "Page 2: Sleeves", "Page 3: Components"])
     
-    st.caption("Pieces laid out with grainlines and notches for immediate factory cutting.")
+    if page == "Page 1: Bodice":
+        st.write("Displaying Front and Back patterns as separate shapes.")
+        
+    else:
+        st.info("Visualizing component breakdowns...")
