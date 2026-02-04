@@ -6,14 +6,12 @@ from PIL import Image
 st.set_page_config(layout="wide", page_title="FLATTERN BETA")
 ADMIN_PASS = "iLFT1991*"
 
-# Plans and Tier Logic
 PLANS = {
     "Pro Garment Manufacturer": {"price": 6500, "quota": 50, "canvas": True},
     "Manufacturer Lite": {"price": 2500, "quota": 30, "canvas": False},
     "Fashion Designer": {"price": 1500, "quota": 20, "canvas": False}
 }
 
-# Session Management
 if 'auth' not in st.session_state: st.session_state.auth = False
 if 'active_plan' not in st.session_state: st.session_state.active_plan = "Pro Garment Manufacturer"
 if 'design_count' not in st.session_state: st.session_state.design_count = 0
@@ -39,83 +37,88 @@ if not st.session_state.auth:
                 st.rerun()
     st.stop()
 
-# --- 3. SIDEBAR: LOGOS, PLANS & UNIT LOCK ---
+# --- 3. SIDEBAR: LOGOS & UNIT LOCK ---
 with st.sidebar:
-    if side_logo: 
-        st.image(side_logo, width=120)
-    
-    st.subheader("Subscription Status")
-    st.session_state.active_plan = st.selectbox("Current Tier", list(PLANS.keys()))
+    if side_logo: st.image(side_logo, width=120)
+    st.subheader("Subscription")
+    st.session_state.active_plan = st.selectbox("Tier", list(PLANS.keys()))
     current = PLANS[st.session_state.active_plan]
-    
-    st.metric("Monthly Designs", f"{st.session_state.design_count} / {current['quota']}")
-    st.write(f"Price: **${current['price']}**")
+    st.metric("Designs Used", f"{st.session_state.design_count} / {current['quota']}")
     
     st.markdown("---")
-    unit = st.radio("Measurement System", ["Inches", "CM"])
+    unit = st.radio("Units", ["Inches", "CM"])
     sa_val = st.number_input(f"Seam Allowance ({unit})", value=0.5 if unit == "Inches" else 1.2)
-    
-    st.markdown("---")
     st.button("Paystack USD Gateway")
 
-# --- 4. MAIN CAD WORKSPACE ---
-t1, t2, t3, t4 = st.tabs(["Pattern Generator", "Pro Flat Maker", "Sizing Matrix", "Tech Pack & Export"])
+# --- 4. MAIN WORKSPACE ---
+t1, t2, t3, t4 = st.tabs(["Pattern Generator", "Flat Maker / Upload", "Sizing Matrix", "Tech Pack & Export"])
 
 with t1:
     st.header("Point-to-Point Pattern Generator")
     col_in, col_pre = st.columns([1, 2])
     with col_in:
-        st.write("### Measurement Inputs")
+        st.write("### Measurement Drafting")
         bust = st.number_input("Bust", value=36.0)
         waist = st.number_input("Waist", value=28.0)
         if st.button("Generate Patterns"):
             if st.session_state.design_count < current['quota']:
                 st.session_state.design_count += 1
-                st.success("Mathematical draft processed.")
+                st.success("Draft processed.")
     with col_pre:
         st.write("### Internal & External Highlighting")
         
-        st.caption("Bold: Exterior Cutting Line | Dashed: Internal Construction / Stitching")
+        st.caption("Bold: Exterior Cutting Path | Dashed: Internal Darts & Construction")
 
 with t2:
-    st.header("Pro Flat Maker (Corrective Drawing)")
-    # FIXED: Added logic inside the IF to prevent IndentationError
     if current['canvas']:
-        st.write("Corrective vector engine active. Auto-snapping angles and curves.")
+        st.header("Pro Flat Maker (Corrective Vector Engine)")
+        st.write("Sketch technical flats. System corrects curves for DWG/DWF conversion.")
         
-        st_canvas(stroke_width=2, stroke_color="#000", background_color="#FFF", height=500, width=800, drawing_mode="path", key="canvas_stable")
+        
+        # STABILITY FIX: Forced unique key and background clearing to stop 'z[d]' error
+        st_canvas(
+            fill_color="rgba(255, 165, 0, 0.3)", 
+            stroke_width=2,
+            stroke_color="#000000",
+            background_color="#FFFFFF",
+            update_streamlit=True,
+            height=500,
+            width=900,
+            drawing_mode="path",
+            key="pro_canvas_stable_v3"
+        )
     else:
-        st.error(f"Flat Maker Locked. {st.session_state.active_plan} tier is restricted to Parametric Drafting.")
-        st.info("Upgrade to Pro Garment Manufacturer ($6,500) for vector drawing tools.")
+        st.header("Flat Management (Lite/Designer)")
+        st.info("You are on a Parametric Tier. Please upload your flat sketch to include it in the Tech Pack.")
+        uploaded_flat = st.file_uploader("Upload Technical Flat (PNG/JPG)", type=["png", "jpg", "jpeg"])
+        if uploaded_flat:
+            st.image(uploaded_flat, caption="Uploaded Flat for Tech Pack", width=400)
+            st.success("Flat attached to current design draft.")
 
 with t3:
     st.header("Global Sizing & Auto-Grading")
     
-    st.table({"US Size": [4, 6, 8], "UK Size": [8, 10, 12], "EU Size": [36, 38, 40]})
-    if st.button("Execute Grading"):
-        st.write("Applying industrial grading rules...")
+    st.table({"US": [4, 6, 8], "UK": [8, 10, 12], "EU": [36, 38, 40]})
+    if st.button("Apply Industrial Grading"):
         
 
 with t4:
     st.header("Industrial Export Center")
     c1, c2 = st.columns(2)
     with c1:
-        st.write("### Manufacturing Tech Pack")
-        fabric = st.text_input("Fabrication Type")
-        thread = st.text_input("Thread Count")
-        st.write(f"Confirmed SA: **{sa_val} {unit}**")
+        st.write("### Manufacturing Data")
+        st.text_input("Fabrication Type")
+        st.text_area("Trim List")
+        st.write(f"**Factory Seam Allowance:** {sa_val} {unit}")
     with c2:
-        st.write("### Industrial Downloads")
+        st.write("### CAD Exports")
         st.button("Download DWG (Separated Parts)")
         st.button("Download DWF (Production View)")
     
     st.markdown("---")
-    st.write("### Multi-Page Pattern Preview")
+    st.write("### Individual Piece Verification (Page View)")
     page = st.selectbox("View Piece", ["Page 1: Bodice", "Page 2: Sleeves"])
-    
     if page == "Page 1: Bodice":
-        st.write("Individual pattern shapes for Front and Back panels with grainlines.")
         
     else:
-        st.write("Individual sleeve component layout.")
-        st.info("Visualizing separate pattern shappets.")
+        st.info("Visualizing sleeve component breakdown.")
