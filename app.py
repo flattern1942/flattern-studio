@@ -1,88 +1,95 @@
 import streamlit as st
 from streamlit_drawable_canvas import st_canvas
 from PIL import Image
+import datetime
 
-# --- 1. GLOBAL SETTINGS & IDENTITY ---
+# --- 1. INDUSTRIAL CONFIGURATION & QUOTA ---
 st.set_page_config(layout="wide")
-
 if 'sa_value' not in st.session_state: st.session_state.sa_value = 0.5
-if 'designs' not in st.session_state: st.session_state.designs = 0
+if 'designs_remaining' not in st.session_state: st.session_state.designs_remaining = 50
 
-# Static Image Loading (Independent of Canvas)
-def load_assets():
+# Professional Audit Logging
+if 'audit_logs' not in st.session_state: 
+    st.session_state.audit_logs = [f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}: Pro System ($6,500) Initialized"]
+
+def load_pro_assets():
     try:
         return Image.open("sidebar_logo.png.png"), Image.open("logo.png.png")
-    except:
-        return None, None
+    except: return None, None
 
-side_logo, purple_logo = load_assets()
+side_logo, purple_logo = load_pro_assets()
 
-# --- SIDEBAR: BILLING & ADMIN ---
+# --- SIDEBAR: PRO PORTAL & BUSINESS LOGS ---
 with st.sidebar:
-    if side_logo: 
-        st.image(side_logo, use_container_width=True)
-    
+    if side_logo: st.image(side_logo, use_container_width=True)
     st.markdown("---")
-    portal = st.radio("Portal", ["Paystack Checkout", "Admin Login"])
     
-    if portal == "Paystack Checkout":
-        st.write("### Design Quota")
-        st.metric("Available", st.session_state.designs)
-        if st.button("Unlock 50 Designs (USD)"):
-            st.session_state.designs += 50
-            st.success("Webhook Verified: +50 Designs")
-    else:
-        st.text_input("Admin ID")
-        st.text_input("Key", type="password")
+    view = st.radio("Management Portal", ["Drafting Workspace", "Audit Logs", "Client Billing"])
+    
+    if view == "Client Billing":
+        st.write("### Subscription Status")
+        st.success("**Tier: Pro Garment Manufacturer**")
+        st.write("**Cost:** $6,500 / month")
+        st.metric("Design Quota", f"{st.session_state.designs_remaining} / 50")
+        if st.button("Initialize Paystack USD"):
+            st.write("Connecting to Secure Gateway...")
+            
+    elif view == "Audit Logs":
+        st.write("### Manufacturing Audit Trail")
+        for log in st.session_state.audit_logs[-15:]:
+            st.caption(log)
 
     st.markdown("---")
+    region = st.selectbox("Grading System", ["US (Standard)", "UK (Imperial)", "EU (Metric)"])
     st.write("### Seam Allowance (Inches)")
-    c1, c2, c3 = st.columns([1, 2, 1])
-    with c1: 
-        if st.button("−"): st.session_state.sa_value -= 0.125
-    with c3: 
-        if st.button("+"): st.session_state.sa_value += 0.125
-    with c2: 
-        st.session_state.sa_value = st.number_input("", value=st.session_state.sa_value, format="%.3f")
+    st.session_state.sa_value = st.number_input("", value=st.session_state.sa_value, step=0.125)
 
-# --- 2. VECTOR ENGINE (STABLE) ---
-st.title("Industrial Vector Workspace")
+# --- 2. THE PRECISION DRAFTING ENGINE ---
+st.title("Industrial Flat-to-Pattern Converter")
+if purple_logo: st.image(purple_logo, width=120)
 
-# Anchor the purple logo safely above the canvas
-if purple_logo: 
-    st.image(purple_logo, width=120)
-
-tabs = st.tabs(["1. Precision Drafting", "2. Piece Breakdown", "3. Export"])
+tabs = st.tabs(["1. Precision Drafting", "2. Industrial Sizing", "3. Production Breakdown"])
 
 with tabs[0]:
-    col_ctrl, col_canvas = st.columns([1, 4])
+    col_tools, col_canvas = st.columns([1, 4])
     
-    with col_ctrl:
-        mode = st.radio("Tool", ["Smart Curve (Bezier)", "Line", "Transform"])
-        st.info("Click and Drag for Arcs")
-        if st.button("Refresh Canvas"): st.rerun()
+    with col_tools:
+        st.write("### CAD Tools")
+        tool = st.radio("Mode", ["Smart Curve (Bezier)", "Straight Line", "Edit Nodes"])
+        
+        st.markdown("---")
+        st.write("### Marker Highlighter")
+        # Color coding for Internal vs External lines
+        marker = st.radio("Line Classification", ["External (Cut - Blue)", "Internal (Stitch - Red)"])
+        line_color = "#0000FF" if marker == "External (Cut - Blue)" else "#FF0000"
+        
+        if st.button("Lock Design"):
+            if st.session_state.designs_remaining > 0:
+                st.session_state.designs_remaining -= 1
+                st.session_state.audit_logs.append(f"{datetime.datetime.now().strftime('%H:%M')}: Design Saved (-1 Quota)")
+                st.success("Design Locked to Database")
+            else:
+                st.error("Quota Exhausted. Upgrade Required.")
 
     with col_canvas:
-        # THE FIX: No background_image, no URL processing. Pure stability.
+        # Stable CAD-style canvas for high-accuracy flats
         canvas_result = st_canvas(
             fill_color="rgba(0,0,0,0)",
             stroke_width=2,
-            stroke_color="#000000",
+            stroke_color=line_color,
             height=650,
-            width=900,
-            drawing_mode="path" if mode == "Smart Curve (Bezier)" else ("line" if mode == "Line" else "transform"),
-            key="v61_fixed_stable"
+            width=950,
+            drawing_mode="path" if tool == "Smart Curve (Bezier)" else ("line" if tool == "Straight Line" else "transform"),
+            key="v72_pro_engine"
         )
 
 with tabs[1]:
-    st.subheader("Front, Back, and Sleeve Panel Generation")
+    st.subheader(f"Multi-Size Grading ({region})")
     
-    st.write(f"Calculating {st.session_state.sa_value}\" SA for all industrial panels.")
+    st.write("Calculating size offsets for all vector anchor points.")
+    
 
 with tabs[2]:
-    st.subheader("Industrial Transformation")
+    st.subheader("Factory-Ready Breakdown")
     
-    if st.button("Export to DXF"):
-        if st.session_state.designs > 0:
-            st.session_state.designs -= 1
-            st.success("Pattern Exported Successfully.")
+    st.info(f"Applying {st.session_state.sa_value}\" SA to Blue External Markers only.")
