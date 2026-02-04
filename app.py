@@ -2,20 +2,19 @@ import streamlit as st
 from streamlit_drawable_canvas import st_canvas
 from PIL import Image
 
-# --- SYSTEM CONFIGURATION & SECURITY ---
+# --- SYSTEM CONFIGURATION ---
 st.set_page_config(layout="wide", page_title="FLATTERN BETA")
 ADMIN_PASS = "iLFT1991*"
 
-# Plans Architecture
+# Plans and Tier Logic
 PLANS = {
-    "Pro Garment Manufacturer": {"price": 6500, "quota": 50, "tools": "Pattern + Flat Maker"},
-    "Manufacturer Lite": {"price": 2500, "quota": 30, "tools": "Pattern Only"},
-    "Fashion Designer": {"price": 1500, "quota": 20, "tools": "Pattern Only"}
+    "Pro Garment Manufacturer": {"price": 6500, "quota": 50, "canvas": True},
+    "Manufacturer Lite": {"price": 2500, "quota": 30, "canvas": False},
+    "Fashion Designer": {"price": 1500, "quota": 20, "canvas": False}
 }
 
-# State Management
+# Session Management
 if 'auth' not in st.session_state: st.session_state.auth = False
-if 'is_admin' not in st.session_state: st.session_state.is_admin = False
 if 'active_plan' not in st.session_state: st.session_state.active_plan = "Pro Garment Manufacturer"
 if 'design_count' not in st.session_state: st.session_state.design_count = 0
 
@@ -36,78 +35,61 @@ if not st.session_state.auth:
         p_in = st.text_input("System Password", type="password")
         if st.button("Secure Login"):
             if p_in == ADMIN_PASS:
-                st.session_state.is_admin = True
-                st.session_state.auth = True
-                st.rerun()
-            else:
                 st.session_state.auth = True
                 st.rerun()
     st.stop()
 
-# --- SIDEBAR: PLANS, LOGO & SETTINGS ---
+# --- SIDEBAR: LOGOS, PLANS & UNIT LOCK ---
 with st.sidebar:
     if side_logo: st.image(side_logo, width=120)
     
-    st.subheader("Subscription Plans")
-    # Allow user to choose plan for testing/switching
-    choice = st.selectbox("Current Plan", list(PLANS.keys()), index=0)
-    st.session_state.active_plan = choice
-    
+    st.subheader("Subscription Status")
+    # Plan selection for Beta testing
+    st.session_state.active_plan = st.selectbox("Current Tier", list(PLANS.keys()))
     current = PLANS[st.session_state.active_plan]
-    st.info(f"Price: ${current['price']}/mo\nTools: {current['tools']}")
     
-    st.metric("Designs Used", f"{st.session_state.design_count} / {current['quota']}")
+    st.metric("Monthly Designs", f"{st.session_state.design_count} / {current['quota']}")
+    st.write(f"Price: **${current['price']}**")
     
     st.markdown("---")
     unit = st.radio("Measurement System", ["Inches", "CM"])
-    sa_val = st.number_input(f"Your Seam Allowance ({unit})", value=0.5 if unit == "Inches" else 1.2)
+    sa_val = st.number_input(f"Seam Allowance ({unit})", value=0.5 if unit == "Inches" else 1.2)
     
     st.markdown("---")
     st.button("Paystack USD Gateway")
-    
-    if st.session_state.is_admin:
-        st.error("Admin: iLFT1991* Mode")
 
-# --- MAIN WORKSPACE ---
+# --- MAIN CAD WORKSPACE ---
 t1, t2, t3, t4 = st.tabs(["Pattern Generator", "Pro Flat Maker", "Sizing Matrix", "Tech Pack & Export"])
 
 with t1:
     st.header("Point-to-Point Pattern Generator")
-    col_a, col_b = st.columns([1, 2])
-    with col_a:
-        st.write("### Measure to Draft")
-        bust = st.number_input("Bust Circumference", value=36.0)
-        waist = st.number_input("Waist Circumference", value=28.0)
-        hip = st.number_input("Hip Circumference", value=38.0)
+    col_in, col_pre = st.columns([1, 2])
+    with col_in:
+        st.write("### Production Measurements")
+        bust = st.number_input("Bust", value=36.0)
+        waist = st.number_input("Waist", value=28.0)
         if st.button("Generate Patterns"):
             if st.session_state.design_count < current['quota']:
                 st.session_state.design_count += 1
-                st.success("Pattern Drafted and Quota Updated.")
-            else:
-                st.error("Quota Reached. Upgrade or renew plan.")
-    with col_b:
-        st.write("### Exploded View (Internal & External Highlighting)")
+                st.success("Draft processed. Pattern split into individual segments.")
+    with col_pre:
+        st.write("### Internal & External Highlighting")
         
-        st.caption("Individual shappets separated with grainlines and construction notches.")
+        st.info("Bold: Exterior Cutting Line | Dashed: Internal Construction")
 
 with t2:
-    st.header("Flat Generator (Corrective Drawing)")
-    if st.session_state.active_plan == "Pro Garment Manufacturer":
-        st.write("System correcting hand-drawn paths for CAD compatibility...")
-        st_canvas(stroke_width=2, stroke_color="#000", background_color="#FFF", height=500, width=800, drawing_mode="path", key="v2_canvas")
+    st.header("Pro Flat Maker (Corrective Drawing)")
+    if current['canvas']:
+        st.write("Corrective vector engine active for DWG/DWF conversion.")
+        
+        st_canvas(stroke_width=2, stroke_color="#000", background_color="#FFF", height=500, width=800, drawing_mode="path", key="canvas_v2.1")
     else:
-        st.error(f"Flat Generator is locked. The {st.session_state.active_plan} tier only supports Parametric Drafting.")
-        st.info("Upgrade to Pro Garment Manufacturer ($6,500) for freehand corrective curves.")
+        st.error(f"Flat Maker Locked. {st.session_state.active_plan} supports Parametric Drafting only.")
 
 with t3:
     st.header("Global Sizing & Auto-Grading")
     
-    st.table({
-        "US Size": ["2", "4", "6", "8", "10"],
-        "UK Size": ["6", "8", "10", "12", "14"],
-        "Inches": [32, 33.5, 34.5, 36, 37.5],
-        "CM": [81, 85, 87.5, 91.5, 95]
-    })
+    st.table({"US": [4, 6, 8], "UK": [8, 10, 12], "EU": [36, 38, 40], "Bust (In)": [33.5, 34.5, 36]})
     if st.button("Apply Automatic Grading"):
         
 
@@ -115,21 +97,24 @@ with t4:
     st.header("Industrial Export Center")
     c1, c2 = st.columns(2)
     with c1:
-        st.write("### Manufacturing Tech Pack")
-        st.text_input("Fabric Type")
-        st.text_area("Trim List (BOM)")
+        st.write("### Tech Pack (BOM)")
+        st.text_input("Fabrication Type")
         st.write(f"Confirmed SA: **{sa_val} {unit}**")
     with c2:
         st.write("### CAD Downloads")
-        st.button("Download DWG (Exploded Pattern)")
-        st.button("Download DWF (Production Tech)")
+        st.button("Download DWG (Exploded Pattern View)")
+        st.button("Download DWF (Engineering View)")
     
     st.markdown("---")
-    st.write("### Multi-Page Individual Piece Verification")
-    page = st.selectbox("Select Page", ["Page 1: Bodice", "Page 2: Sleeves", "Page 3: Components"])
+    st.write("### Individual Piece Verification (Page View)")
+    page_sel = st.selectbox("Select Page", ["Page 1: Bodice", "Page 2: Sleeves"])
     
-    if page == "Page 1: Bodice":
-        st.write("Displaying Front and Back patterns as separate shapes.")
+    # FIXED INDENTATION LOGIC
+    if page_sel == "Page 1: Bodice":
+        st.write("Previewing Front and Back panels as separate pattern shapes.")
         
+    elif page_sel == "Page 2: Sleeves":
+        st.write("Previewing individual sleeve components with grainlines.")
+        st.info("Component view active.")
     else:
-        st.info("Visualizing component breakdowns...")
+        pass
