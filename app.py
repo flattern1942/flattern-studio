@@ -53,7 +53,7 @@ with st.sidebar:
     
     st.markdown("---")
     unit = st.radio("Measurement System", ["Inches", "CM"])
-    # 0.5 inch Seam Allowance default
+    # Standard 0.5 inch Seam Allowance for industrial patterns
     sa_val = st.number_input(f"Seam Allowance ({unit})", value=0.5 if unit == "Inches" else 1.27)
     
     st.markdown("---")
@@ -64,10 +64,10 @@ with st.sidebar:
         if st.button("Open Admin Dashboard"):
             st.session_state.view_admin = True
 
-# --- 4. ADMIN DASHBOARD (FINGERPRINTING) ---
+# --- 4. ADMIN DASHBOARD (SECURITY TRACKING) ---
 if st.session_state.get('view_admin'):
     st.header("Admin Dashboard: Security and Fingerprinting")
-    st.write("Tracking hardware fingerprints to prevent payment evasion and URL abuse.")
+    st.write("Monitoring hardware IDs to block unauthorized access and billing evasion.")
     
     admin_data = {
         "Client ID": ["USR_991", "USR_882", "USR_771"],
@@ -76,8 +76,8 @@ if st.session_state.get('view_admin'):
     }
     st.table(admin_data)
     
-    if st.button("Block Scammer Fingerprint"):
-        st.warning("Hardware signature blacklisted.")
+    if st.button("Block Selected Fingerprint"):
+        st.warning("Hardware ID blacklisted from server.")
     
     if st.button("Return to Workspace"):
         st.session_state.view_admin = False
@@ -97,38 +97,38 @@ with t1:
         if st.button("Generate Patterns"):
             if st.session_state.design_count < current['quota']:
                 st.session_state.design_count += 1
-                st.success("Mathematical draft processed.")
+                st.success("Pattern generated. Pieces separated for export.")
             else:
-                st.error("Monthly quota reached.")
+                st.error("Monthly design quota reached.")
     with col_pre:
-        st.write("### Highlighting: Internal and External Paths")
+        st.write("### Path Highlighting: Internal and External")
         
-        st.caption("Bold Exterior: Cutting Edge | Dashed Interior: Construction and Stitch Lines")
+        st.caption("Solid Outer: Cutting Line (SA Included) | Dashed Inner: Construction / Darts")
 
 with t2:
     if current['canvas']:
-        st.header("Pro Flat Maker (Corrective Engine)")
-        st.write("Corrective vector canvas: Auto-snapping angles and curves for industrial export.")
+        st.header("Pro Flat Maker (Corrective Vector Engine)")
+        st.write("Corrective canvas active. Snapping curves for CAD compatibility.")
         
         st_canvas(
             stroke_width=2, stroke_color="#000000", background_color="#FFFFFF",
-            height=500, width=900, drawing_mode="path", key="pro_canvas_v3.1_stable"
+            height=500, width=900, drawing_mode="path", key="pro_canvas_v3.2_final"
         )
     else:
-        st.header("Flat Management (Lite/Designer)")
-        st.info("Upload technical flat sketch to include in the tech pack.")
-        uploaded_file = st.file_uploader("Upload Flat Sketch (PNG/JPG)", type=["png", "jpg", "jpeg"])
+        st.header("Flat Management (Lite / Designer)")
+        st.info("Upload your technical sketch to include it in the factory Tech Pack.")
+        uploaded_file = st.file_uploader("Upload Flat Sketch (PNG / JPG)", type=["png", "jpg", "jpeg"])
         if uploaded_file:
             st.image(uploaded_file, caption="Technical Flat Attached", width=400)
         else:
-            st.write("Awaiting file upload for production tech pack.")
+            st.write("Awaiting sketch upload to complete Tech Pack.")
 
 with t3:
     st.header("Global Sizing and Automatic Grading")
     
     st.table({"US": [4, 6, 8], "UK": [8, 10, 12], "EU": [36, 38, 40], "Bust (In)": [33.5, 34.5, 36]})
     if st.button("Execute Industrial Grading"):
-        st.write("Calculating size deviations...")
+        st.write("Calculating multi-size deviations.")
         
 
 with t4:
@@ -136,22 +136,22 @@ with t4:
     c1, c2 = st.columns(2)
     with c1:
         st.write("### Tech Pack (BOM)")
-        st.text_input("Fabric Type")
-        st.text_area("Trim List")
+        st.text_input("Fabrication Type")
+        st.text_area("Trim and Thread Specs")
         st.write(f"Confirmed Seam Allowance: {sa_val} {unit}")
     with c2:
         st.write("### Production Downloads")
-        st.button("Download DWG (Exploded View)")
-        st.button("Download DWF (Tech Package)")
+        st.button("Download DWG (Exploded Pattern View)")
+        st.button("Download DWF (Production Tech Package)")
     
     st.markdown("---")
-    st.write("### Multi-Page Pattern Preview")
-    page = st.selectbox("View Piece", ["Page 1: Bodice Panels", "Page 2: Sleeves"])
+    st.write("### Multi-Page Pattern Piece Preview")
+    page = st.selectbox("View Component", ["Page 1: Bodice Pieces", "Page 2: Sleeve Pieces"])
     
-    # FIXED INDENTATION: Logic blocks are now fully populated
-    if page == "Page 1: Bodice Panels":
-        st.write("Displaying Front and Back panels as separate individual patterns.")
+    # FIXED INDENTATION: Corrected all conditional blocks
+    if page == "Page 1: Bodice Pieces":
+        st.write("Displaying Front and Back panels as separate shappets.")
         
     else:
-        st.write("Displaying Sleeve components with grainline arrows.")
-        st.info("Individual shappet view active.")
+        st.write("Displaying individual Sleeve components with grainlines.")
+        st.info("Component View: Production Ready.")
