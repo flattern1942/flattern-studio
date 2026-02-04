@@ -6,14 +6,12 @@ from PIL import Image
 st.set_page_config(layout="wide", page_title="FLATTERN BETA")
 ADMIN_PASS = "iLFT1991*"
 
-# Plan and Pricing Structure
 PLANS = {
     "Pro Garment Manufacturer": {"price": 6500, "quota": 50, "canvas": True, "link": "https://paystack.com/pay/pro-6500"},
     "Manufacturer Lite": {"price": 2500, "quota": 30, "canvas": False, "link": "https://paystack.com/pay/lite-2500"},
     "Fashion Designer": {"price": 1500, "quota": 20, "canvas": False, "link": "https://paystack.com/pay/designer-1500"}
 }
 
-# Session Management
 if 'auth' not in st.session_state: st.session_state.auth = False
 if 'is_admin' not in st.session_state: st.session_state.is_admin = False
 if 'active_plan' not in st.session_state: st.session_state.active_plan = "Pro Garment Manufacturer"
@@ -44,7 +42,7 @@ if not st.session_state.auth:
                 st.rerun()
     st.stop()
 
-# --- 3. SIDEBAR: LOGOS & UNIT LOCK ---
+# --- 3. SIDEBAR: LOGOS AND SUBSCRIPTION ---
 with st.sidebar:
     if side_logo: st.image(side_logo, width=120)
     st.subheader("Subscription Status")
@@ -55,7 +53,7 @@ with st.sidebar:
     
     st.markdown("---")
     unit = st.radio("Measurement System", ["Inches", "CM"])
-    # Your requested 0.5 inch Seam Allowance default
+    # 0.5 inch Seam Allowance default
     sa_val = st.number_input(f"Seam Allowance ({unit})", value=0.5 if unit == "Inches" else 1.27)
     
     st.markdown("---")
@@ -66,21 +64,20 @@ with st.sidebar:
         if st.button("Open Admin Dashboard"):
             st.session_state.view_admin = True
 
-# --- 4. ADMIN DASHBOARD (SECURITY & TRACKING) ---
+# --- 4. ADMIN DASHBOARD (FINGERPRINTING) ---
 if st.session_state.get('view_admin'):
     st.header("Admin Dashboard: Security and Fingerprinting")
     st.write("Tracking hardware fingerprints to prevent payment evasion and URL abuse.")
     
-    admin_table = {
+    admin_data = {
         "Client ID": ["USR_991", "USR_882", "USR_771"],
         "Fingerprint ID": ["FP-9923-AX", "FP-1120-ZB", "FP-8832-QL"],
-        "Payment Plan": ["Pro ($6,500)", "Lite ($2,500)", "Designer ($1,500)"],
         "Status": ["Active", "Active", "Flagged - Scammer"]
     }
-    st.table(admin_table)
+    st.table(admin_data)
     
     if st.button("Block Scammer Fingerprint"):
-        st.warning("Fingerprint added to blocklist.")
+        st.warning("Hardware signature blacklisted.")
     
     if st.button("Return to Workspace"):
         st.session_state.view_admin = False
@@ -88,7 +85,7 @@ if st.session_state.get('view_admin'):
     st.stop()
 
 # --- 5. MAIN WORKSPACE ---
-t1, t2, t3, t4 = st.tabs(["Pattern Generator", "Flat Maker / Upload", "Sizing Matrix", "Tech Pack & Export"])
+t1, t2, t3, t4 = st.tabs(["Pattern Generator", "Flat Maker / Upload", "Sizing Matrix", "Tech Pack and Export"])
 
 with t1:
     st.header("Point-to-Point Pattern Generator")
@@ -102,7 +99,7 @@ with t1:
                 st.session_state.design_count += 1
                 st.success("Mathematical draft processed.")
             else:
-                st.error("Quota reached.")
+                st.error("Monthly quota reached.")
     with col_pre:
         st.write("### Highlighting: Internal and External Paths")
         
@@ -114,13 +111,8 @@ with t2:
         st.write("Corrective vector canvas: Auto-snapping angles and curves for industrial export.")
         
         st_canvas(
-            stroke_width=2,
-            stroke_color="#000000",
-            background_color="#FFFFFF",
-            height=500,
-            width=900,
-            drawing_mode="path",
-            key="pro_canvas_v2.9_stable"
+            stroke_width=2, stroke_color="#000000", background_color="#FFFFFF",
+            height=500, width=900, drawing_mode="path", key="pro_canvas_v3.1_stable"
         )
     else:
         st.header("Flat Management (Lite/Designer)")
@@ -129,13 +121,14 @@ with t2:
         if uploaded_file:
             st.image(uploaded_file, caption="Technical Flat Attached", width=400)
         else:
-            st.write("No file uploaded.")
+            st.write("Awaiting file upload for production tech pack.")
 
 with t3:
     st.header("Global Sizing and Automatic Grading")
     
     st.table({"US": [4, 6, 8], "UK": [8, 10, 12], "EU": [36, 38, 40], "Bust (In)": [33.5, 34.5, 36]})
     if st.button("Execute Industrial Grading"):
+        st.write("Calculating size deviations...")
         
 
 with t4:
@@ -155,10 +148,10 @@ with t4:
     st.write("### Multi-Page Pattern Preview")
     page = st.selectbox("View Piece", ["Page 1: Bodice Panels", "Page 2: Sleeves"])
     
-    # FIXED INDENTATION HERE
+    # FIXED INDENTATION: Logic blocks are now fully populated
     if page == "Page 1: Bodice Panels":
         st.write("Displaying Front and Back panels as separate individual patterns.")
         
     else:
         st.write("Displaying Sleeve components with grainline arrows.")
-        st.info("Component View Active.")
+        st.info("Individual shappet view active.")
